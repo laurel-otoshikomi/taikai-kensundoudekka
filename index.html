@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黒鯛大会</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <h1 id="app-title">大会データ読込中...</h1>
+        <div id="rule-info">---</div>
+    </header>
+
+    <div class="tab-container">
+        <button class="tab active" onclick="switchTab('ranking')">🏆 順位表</button>
+        <button class="tab" onclick="switchTab('input')">✏️ 検量入力</button>
+        <button class="tab" onclick="switchTab('settings')">⚙️ 設定</button>
+    </div>
+
+    <div id="ranking-view" class="content-view">
+        <div id="ranking-list"></div>
+        <div class="special-award-container">
+            <div class="award-box">
+                <div class="award-title">🐟 大物賞 (Best 3)</div>
+                <div id="big-fish-list">読み込み中...</div>
+            </div>
+            <div class="award-box">
+                <div class="award-title">🦐 最小寸賞 (Best 3)</div>
+                <div id="small-fish-list">読み込み中...</div>
+            </div>
+        </div>
+        <button class="reload-btn" onclick="loadRanking()">🔄 情報を更新する</button>
+    </div>
+
+    <div id="input-view" class="content-view" style="display:none;">
+        <div class="login-box" id="login-box">
+            <p style="text-align:center; color:#fff;">管理者パスワード</p>
+            <input type="password" id="admin-pass" placeholder="****" style="text-align:center;">
+            <button onclick="adminLogin()" class="submit-btn" style="margin-top:10px;">ログイン</button>
+        </div>
+
+        <div id="input-form" style="display:none;">
+            <div class="form-item">
+                <label>選手名を入力（または選択）</label>
+                <input list="player-options" id="zekken-input" placeholder="名前やゼッケンで検索">
+                <datalist id="player-options"></datalist>
+            </div>
+            
+            <!-- ★ここを修正：自動変換＆スマホ用キーパッド -->
+            <div class="form-item">
+                <label>長寸 (cm)</label>
+                <input type="text" id="length" placeholder="50.5" inputmode="decimal" onblur="autoNormalize(this)">
+            </div>
+            <div class="form-item">
+                <label>重量 (g)</label>
+                <input type="text" id="weight" placeholder="2100" inputmode="numeric" onblur="autoNormalize(this)">
+            </div>
+            
+            <button class="submit-btn" onclick="sendData()">登録する</button>
+
+            <div style="margin-top:30px; border-top:1px solid #444; padding-top:20px;">
+                <h3 style="font-size:16px; color:#aaa;">📝 直近の登録履歴</h3>
+                <div id="history-list"><p style="color:#666;">読み込み中...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-view" class="content-view" style="display:none;">
+        <div id="settings-login-msg" style="text-align:center; padding:20px; color:#aaa;">
+            <p>※検量入力画面でログインしてください</p>
+        </div>
+        <div id="settings-form" style="display:none;">
+            <div class="form-item"><label>大会名</label><input type="text" id="conf-title"></div>
+            <div class="form-item"><label>ルール種別</label><select id="conf-rule" onchange="toggleLimitField()"><option value="長寸">長寸</option><option value="重量">重量</option><option value="枚数">枚数</option></select></div>
+            <div class="form-item" id="limit-container"><label>規定枚数</label><input type="number" id="conf-limit"></div>
+            <div class="form-item"><label>優先順位 1</label><select id="conf-sort1"><option>合計長寸</option><option>最大長寸</option><option>合計重量</option><option>最大重量</option><option>枚数</option></select></div>
+            <div class="form-item"><label>優先順位 2</label><select id="conf-sort2"><option>合計長寸</option><option>最大長寸</option><option>合計重量</option><option>最大重量</option><option>枚数</option></select></div>
+            <div class="form-item"><label>優先順位 3</label><select id="conf-sort3"><option>合計長寸</option><option>最大長寸</option><option>合計重量</option><option>最大重量</option><option>枚数</option></select></div>
+            <button class="submit-btn" onclick="saveConfig()">設定を保存</button>
+
+            <h3 style="border-bottom:1px solid #444; padding-bottom:5px; margin-top:40px; color:#aaa;">👥 選手管理</h3>
+            <div class="form-item" style="background:#252525; padding:10px; border-radius:5px;">
+                <label>新規追加</label>
+                <input type="number" id="new-p-zecken" placeholder="No" style="margin-bottom:5px;">
+                <input type="text" id="new-p-name" placeholder="氏名" style="margin-bottom:5px;">
+                <input type="text" id="new-p-club" placeholder="所属">
+                <button onclick="addPlayer()" style="width:100%; margin-top:5px; padding:8px; background:#2980b9; color:white; border:none; border-radius:4px; cursor:pointer;">追加</button>
+            </div>
+            <div id="player-list-manage" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <div id="custom-confirm-modal">
+        <div class="confirm-box">
+            <p id="confirm-msg" class="confirm-msg"></p>
+            <div class="confirm-buttons">
+                <button class="btn-no" id="btn-confirm-no">キャンセル</button>
+                <button class="btn-yes" id="btn-confirm-yes">実行する</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

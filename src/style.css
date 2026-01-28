@@ -1,0 +1,128 @@
+/* --- 黒鯛＆ゴールド 高級ダークテーマ v4.0 --- */
+:root {
+  --bg-color: #121212;
+  --card-bg: #1e1e1e;
+  --text-main: #ffffff;
+  --text-sub: #b0b0b0;
+  --gold: #d4af37;
+  --gold-dim: #8a7018;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
+  --accent-red: #e74c3c;
+  --accent-green: #2ecc71;
+}
+
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  margin: 0;
+  padding-bottom: 80px;
+}
+
+header {
+  background: linear-gradient(135deg, #000000, #333333);
+  border-bottom: 2px solid var(--gold);
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+h1 { margin: 0; font-size: 20px; color: var(--gold); letter-spacing: 1px; }
+#rule-info { font-size: 12px; color: var(--text-sub); margin-top: 5px; }
+
+/* タブ */
+.tab-container {
+  display: flex; background: #181818; padding: 10px; gap: 10px; border-bottom: 1px solid #333;
+}
+.tab {
+  flex: 1; padding: 12px; border: 1px solid #444; background: #000; color: #888;
+  border-radius: 5px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+}
+.tab.active {
+  background: var(--gold); color: #000; border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.content-view { padding: 20px 15px; max-width: 600px; margin: 0 auto; }
+
+/* 順位カード */
+.card {
+  background: var(--card-bg);
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  display: flex; align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  opacity: 0; animation: fadeInUp 0.5s ease forwards;
+}
+
+/* 順位ごとの特別デザイン */
+.rank-1 { border: 2px solid var(--gold); background: linear-gradient(to right, #1e1e1e, #2a2510); }
+.rank-1 .rank { color: var(--gold); font-size: 1.8rem; text-shadow: 0 0 5px var(--gold); }
+
+.rank-2 { border: 2px solid var(--silver); background: linear-gradient(to right, #1e1e1e, #252829); }
+.rank-2 .rank { color: var(--silver); }
+
+.rank-3 { border: 2px solid var(--bronze); background: #1e1e1e; }
+.rank-3 .rank { color: var(--bronze); }
+
+.rank {
+  font-size: 1.5rem; font-weight: bold; width: 60px; text-align: center;
+  margin-right: 10px; font-style: italic; color: #fff;
+}
+
+.info { flex: 1; }
+.name { font-weight: bold; font-size: 1.2rem; color: #fff; }
+.club { font-size: 0.8rem; color: var(--text-sub); }
+
+.score { text-align: right; }
+.total { font-size: 1.4rem; font-weight: bold; color: var(--gold); }
+.detail { font-size: 0.75rem; color: var(--text-sub); }
+
+/* 特別賞 */
+.special-award-container { margin-top: 30px; border-top: 1px solid #444; padding-top: 20px; }
+.award-box { background: #252525; border: 1px solid #444; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+.award-title { margin: 0 0 10px 0; font-size: 15px; color: var(--gold); border-bottom: 1px solid #444; padding-bottom: 5px; }
+.award-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; }
+
+/* フォーム */
+.form-item { margin-bottom: 20px; }
+label { display: block; margin-bottom: 8px; font-weight: bold; color: var(--gold); }
+input, select {
+  width: 100%; padding: 14px; background: #000; border: 1px solid #444; color: #fff;
+  border-radius: 5px; font-size: 1rem; box-sizing: border-box;
+}
+input:focus, select:focus { border-color: var(--gold); outline: none; }
+
+.submit-btn {
+  display: block; width: 100%; padding: 15px;
+  background: linear-gradient(to bottom, var(--gold), var(--gold-dim));
+  color: #000 !important; border: none; border-radius: 5px;
+  font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px;
+  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
+}
+.submit-btn:active { transform: translateY(2px); box-shadow: none; }
+
+.reload-btn {
+  width: 100%; padding: 12px; background: #333; color: var(--gold);
+  border: 1px solid var(--gold); border-radius: 5px; margin-top: 20px; cursor: pointer; font-weight: bold;
+}
+
+/* ★追加：自作確認モーダル */
+#custom-confirm-modal {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.7); z-index: 9999;
+  justify-content: center; align-items: center;
+}
+.confirm-box {
+  background: #252525; border: 1px solid #444; color: white;
+  padding: 25px; border-radius: 10px; width: 85%; max-width: 320px;
+  text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+.confirm-msg { font-size: 16px; margin-bottom: 25px; line-height: 1.5; white-space: pre-wrap; }
+.confirm-buttons { display: flex; gap: 10px; justify-content: center; }
+.btn-yes { flex: 1; padding: 12px; background: var(--gold); color: black; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+.btn-no { flex: 1; padding: 12px; background: #444; color: white; border: none; border-radius: 5px; cursor: pointer; }
+
+@keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
