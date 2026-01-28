@@ -8,30 +8,39 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-
-    <!-- ★新設：トップページ（大会選択） -->
+    <!-- トップページ -->
     <div id="top-page" class="center-screen">
         <div class="login-box">
             <h1 style="color:var(--gold); margin-bottom:20px;">🏆 大会システム</h1>
-            <p style="color:#fff; margin-bottom:10px;">大会IDを入力してください</p>
-            <input type="text" id="tournament-id-input" placeholder="例: osaka" style="text-align:center;">
-            <button onclick="enterTournament()" class="submit-btn">大会ページへ移動</button>
             
-            <div style="margin-top:30px; border-top:1px solid #444; padding-top:20px;">
+            <!-- 参加者・運営用入り口 -->
+            <div id="top-login-form">
+                <p style="color:#fff; margin-bottom:10px;">大会IDを入力</p>
+                <input type="text" id="tournament-id-input" placeholder="例: osaka" style="text-align:center;">
+                <button onclick="enterTournament()" class="submit-btn">大会ページへ</button>
+            </div>
+
+            <div style="margin-top:40px; border-top:1px solid #444; padding-top:20px;">
                 <p style="color:#aaa; font-size:12px;">管理者メニュー</p>
-                <button onclick="showCreateModal()" style="background:#444; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">新規大会を作成</button>
+                <button onclick="showCreateModal()" style="background:#333; color:#ccc; border:1px solid #555; padding:8px 15px; border-radius:5px; cursor:pointer; width:100%;">新規大会を作成</button>
             </div>
         </div>
     </div>
 
-    <!-- ★以下、大会ページ（最初は隠しておく） -->
+    <!-- 大会ページ -->
     <div id="tournament-page" style="display:none;">
         <header>
             <div style="position:absolute; left:10px; top:15px;">
-                <button onclick="goTop()" style="background:none; border:none; color:#aaa; cursor:pointer;">🏠</button>
+                <button onclick="goTop()" style="background:none; border:none; color:#aaa; cursor:pointer; font-size:1.2rem;">🏠</button>
             </div>
+            <div style="position:absolute; right:10px; top:15px;">
+                <button id="header-refresh-btn" onclick="manualRefresh()" style="background:none; border:none; color:var(--gold); cursor:pointer; font-size:1.2rem; transition:transform 0.5s;">🔄</button>
+            </div>
+            
             <h1 id="app-title">読み込み中...</h1>
             <div id="rule-info">---</div>
+            <!-- 権限バッジ -->
+            <div id="auth-badge" style="font-size:10px; color:#aaa; margin-top:5px;">ゲスト観戦中</div>
         </header>
 
         <div class="tab-container">
@@ -43,42 +52,48 @@
         <!-- 順位表 -->
         <div id="ranking-view" class="content-view">
             <div id="ranking-list"></div>
-            <div class="special-award-container">
-                <div class="award-box">
-                    <div class="award-title">🐟 大物賞 (Best 3)</div>
-                    <div id="big-fish-list">読み込み中...</div>
-                </div>
-                <div class="award-box">
-                    <div class="award-title">🦐 最小寸賞 (Best 3)</div>
-                    <div id="small-fish-list">読み込み中...</div>
-                </div>
+            
+            <!-- 大会終了済みの場合ここにダウンロードボタンが出る -->
+            <div id="download-area" style="display:none; text-align:center; margin:20px 0;">
+                <button onclick="downloadCSV()" style="background:linear-gradient(to bottom, #2ecc71, #27ae60); color:white; border:none; padding:15px; width:100%; border-radius:8px; font-weight:bold; cursor:pointer;">📄 結果をダウンロード (CSV)</button>
             </div>
-            <button class="reload-btn" onclick="loadRanking()">🔄 情報を更新する</button>
+
+            <div class="special-award-container">
+                <div class="award-box"><div class="award-title">🐟 大物賞 (Best 3)</div><div id="big-fish-list">読み込み中...</div></div>
+                <div class="award-box"><div class="award-title">🦐 最小寸賞 (Best 3)</div><div id="small-fish-list">読み込み中...</div></div>
+            </div>
+            <button class="reload-btn" onclick="manualRefresh()">🔄 情報を更新する</button>
         </div>
 
         <!-- 入力画面 -->
         <div id="input-view" class="content-view" style="display:none;">
+            <!-- ログインフォーム -->
             <div class="login-box" id="login-box">
-                <p style="text-align:center; color:#fff;">管理者パスワード</p>
-                <input type="password" id="admin-pass" placeholder="****" style="text-align:center;">
-                <button onclick="adminLogin()" class="submit-btn" style="margin-top:10px;">ログイン</button>
+                <p style="text-align:center; color:#fff;">運営・管理者ログイン</p>
+                <input type="password" id="staff-pass" placeholder="パスワードを入力" style="text-align:center;">
+                <button onclick="staffLogin()" class="submit-btn" style="margin-top:10px;">ログイン</button>
+                <p style="text-align:center; font-size:11px; color:#666; margin-top:10px;">※閲覧のみの方は入力不要です</p>
             </div>
-
+            
+            <!-- 入力フォーム -->
             <div id="input-form" style="display:none;">
-                <div class="form-item">
-                    <label>選手名を入力（または選択）</label>
-                    <input list="player-options" id="zekken-input" placeholder="名前やゼッケンで検索">
-                    <datalist id="player-options"></datalist>
+                <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                    <button onclick="staffLogout()" style="background:none; border:1px solid #444; color:#aaa; font-size:11px; padding:4px 8px; border-radius:4px; cursor:pointer;">ログアウト</button>
                 </div>
-                <div class="form-item">
-                    <label>長寸 (cm)</label>
-                    <input type="text" id="length" placeholder="50.5" inputmode="decimal" onblur="autoNormalize(this)">
+                
+                <div id="input-disabled-msg" style="display:none; background:#e74c3c; color:white; padding:10px; text-align:center; border-radius:5px; margin-bottom:15px;">
+                    ⚠️ 大会終了済みのため入力できません
                 </div>
-                <div class="form-item">
-                    <label>重量 (g)</label>
-                    <input type="text" id="weight" placeholder="2100" inputmode="numeric" onblur="autoNormalize(this)">
+
+                <div id="active-input-area">
+                    <div class="form-item">
+                        <label>選手名を入力（または選択）</label>
+                        <input list="player-options" id="zekken-input" placeholder="名前やゼッケンで検索"><datalist id="player-options"></datalist>
+                    </div>
+                    <div class="form-item"><label>長寸 (cm)</label><input type="text" id="length" placeholder="50.5" inputmode="decimal" onblur="autoNormalize(this)"></div>
+                    <div class="form-item"><label>重量 (g)</label><input type="text" id="weight" placeholder="2100" inputmode="numeric" onblur="autoNormalize(this)"></div>
+                    <button class="submit-btn" onclick="sendData()">登録する</button>
                 </div>
-                <button class="submit-btn" onclick="sendData()">登録する</button>
 
                 <div style="margin-top:30px; border-top:1px solid #444; padding-top:20px;">
                     <h3 style="font-size:16px; color:#aaa;">📝 直近の登録履歴</h3>
@@ -89,59 +104,101 @@
 
         <!-- 設定画面 -->
         <div id="settings-view" class="content-view" style="display:none;">
-            <div id="settings-login-msg" style="text-align:center; padding:20px; color:#aaa;">
-                <p>※検量入力画面でログインしてください</p>
+            <!-- 管理者以外には見せないメッセージ -->
+            <div id="settings-lock-msg" style="text-align:center; padding:30px; color:#aaa;">
+                <p>🔒 管理者権限が必要です</p>
+                <p style="font-size:12px;">検量入力画面で「管理者パスワード」でログインしてください</p>
             </div>
+            
             <div id="settings-form" style="display:none;">
                 <h3 style="border-bottom:1px solid #444; padding-bottom:5px; color:#aaa;">🛠️ 大会設定</h3>
                 <p style="font-size:12px; color:#aaa; margin-bottom:10px;">大会ID: <span id="conf-id" style="color:var(--gold); font-weight:bold;"></span></p>
                 
                 <div class="form-item"><label>大会名</label><input type="text" id="conf-title"></div>
-                <div class="form-item"><label>ルール種別</label><select id="conf-rule" onchange="toggleLimitField()"><option value="長寸">長寸</option><option value="重量">重量</option><option value="枚数">枚数</option></select></div>
-                <div class="form-item" id="limit-container"><label>規定枚数</label><input type="number" id="conf-limit"></div>
-                <div class="form-item"><label>優先順位 1</label><select id="conf-sort1"><option>合計長寸</option><option>最大長寸</option><option>合計重量</option><option>最大重量</option><option>枚数</option></select></div>
-                <div class="form-item"><label>優先順位 2</label><select id="conf-sort2"><option>合計長寸</option><option>最大長寸</option><option>合計重量</option><option>最大重量</option><option>枚数</option></select></div>
-                <div class="form-item"><label>優先順位 3</label><select id="conf-sort3"><option>合計長寸</option><option>最大長寸</option><option>合計重量</option><option>最大重量</option><option>枚数</option></select></div>
+
+                <!-- ルール設定 -->
+                <div style="background:#222; padding:15px; border-radius:8px; border:1px solid #444; margin-bottom:20px;">
+                    <h4 style="margin:0 0 10px 0; color:var(--gold);">📏 勝敗ルール</h4>
+                    <div class="form-item"><label>メイン競技種別</label><select id="conf-rule" onchange="updateFormUI()"><option value="長寸">長寸 (合計長寸)</option><option value="重量">重量 (合計重量)</option><option value="枚数">枚数 (総釣果数)</option></select></div>
+                    <div class="form-item" id="limit-container"><label>リミット規定 (匹数)</label><input type="number" id="conf-limit" placeholder="例: 5"></div>
+                </div>
+
+                <div style="background:#222; padding:15px; border-radius:8px; border:1px solid #444; margin-bottom:20px;">
+                    <h4 style="margin:0 0 10px 0; color:var(--silver);">⚖️ 同点時の判定</h4>
+                    <div class="form-item"><label>優先順位 1</label><select id="conf-sort1" onchange="updateSortOptions(1)"><option value="">なし</option></select></div>
+                    <div class="form-item"><label>優先順位 2</label><select id="conf-sort2" onchange="updateSortOptions(2)"><option value="">なし</option></select></div>
+                    <div class="form-item"><label>優先順位 3</label><select id="conf-sort3" onchange="updateSortOptions(3)"><option value="">なし</option></select></div>
+                </div>
+
                 <button class="submit-btn" onclick="saveConfig()">設定を保存</button>
 
                 <h3 style="border-bottom:1px solid #444; padding-bottom:5px; margin-top:40px; color:#aaa;">👥 選手管理</h3>
-                <div class="form-item" style="background:#252525; padding:10px; border-radius:5px;">
+                <div class="form-item" style="background:#252525; padding:10px; border-radius:5px; margin-top:10px;">
                     <label>新規追加</label>
                     <input type="number" id="new-p-zecken" placeholder="No" style="margin-bottom:5px;">
                     <input type="text" id="new-p-name" placeholder="氏名" style="margin-bottom:5px;">
                     <input type="text" id="new-p-club" placeholder="所属">
                     <button onclick="addPlayer()" style="width:100%; margin-top:5px; padding:8px; background:#2980b9; color:white; border:none; border-radius:4px; cursor:pointer;">追加</button>
                 </div>
-                <div id="player-list-manage" style="margin-top:10px;"></div>
+                <div id="player-list-manage" style="margin-top:10px; margin-bottom:20px;"></div>
+                
+                <!-- CSVインポートは一番下に移動 -->
+                <div class="form-item" style="border-top:1px dashed #444; padding-top:15px;">
+                    <label>📂 選手一括登録 (CSV)</label>
+                    <p style="font-size:12px; color:#aaa; margin-bottom:5px;">形式: ゼッケン,名前,所属 (ヘッダーなし)</p>
+                    <input type="file" id="player-csv" accept=".csv" style="padding:10px;">
+                    <button onclick="importPlayers()" style="width:100%; margin-top:5px; padding:10px; background:#444; color:var(--gold); border:1px solid var(--gold); border-radius:4px; cursor:pointer;">CSVを取り込む</button>
+                </div>
+
+                <!-- 危険な操作エリア -->
+                <div style="margin-top:50px; border:1px solid #e74c3c; border-radius:8px; padding:15px;">
+                    <h4 style="color:#e74c3c; margin-top:0;">⛔ 危険な操作</h4>
+                    
+                    <div class="form-item">
+                        <label>大会ステータス</label>
+                        <button id="btn-finish-tournament" onclick="toggleFinishStatus()" style="width:100%; padding:10px; background:#e67e22; color:white; border:none; border-radius:4px; cursor:pointer;">大会を終了する</button>
+                        <p style="font-size:11px; color:#aaa; margin-top:5px;">※終了すると検量入力ができなくなり、結果CSVダウンロードが可能になります。</p>
+                    </div>
+
+                    <div class="form-item" style="margin-top:20px;">
+                        <label>大会の削除</label>
+                        <button onclick="deleteTournament()" style="width:100%; padding:10px; background:#c0392b; color:white; border:none; border-radius:4px; cursor:pointer;">この大会を完全に削除する</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 大会作成モーダル -->
+    <!-- モーダル類 -->
     <div id="create-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
         <div class="confirm-box" style="text-align:left;">
             <h3 style="text-align:center; color:var(--gold);">新規大会作成</h3>
             <div class="form-item"><label>大会ID (英数字)</label><input type="text" id="create-id" placeholder="例: osaka-cup"></div>
             <div class="form-item"><label>大会名</label><input type="text" id="create-name" placeholder="例: 第1回 大阪カップ"></div>
-            <div class="form-item"><label>パスワード</label><input type="text" id="create-pass" placeholder="1234"></div>
-            <div class="confirm-buttons">
-                <button class="btn-no" onclick="closeCreateModal()">キャンセル</button>
-                <button class="btn-yes" onclick="createTournament()">作成</button>
-            </div>
+            <div class="form-item"><label>管理者パスワード</label><input type="text" id="create-pass" placeholder="管理者用"></div>
+            <div class="form-item"><label>運営パスワード</label><input type="text" id="create-staff-pass" placeholder="運営スタッフ用"></div>
+            <div class="confirm-buttons"><button class="btn-no" onclick="closeCreateModal()">キャンセル</button><button class="btn-yes" onclick="createTournament()">作成</button></div>
+        </div>
+    </div>
+    
+    <!-- 修正用モーダル -->
+    <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; justify-content:center; align-items:center;">
+        <div class="confirm-box" style="text-align:left;">
+            <h3 style="text-align:center; color:var(--gold);">記録の修正</h3>
+            <input type="hidden" id="edit-id">
+            <div class="form-item"><label>選手</label><input type="text" id="edit-name" disabled style="color:#aaa;"></div>
+            <div class="form-item"><label>長寸 (cm)</label><input type="text" id="edit-length" onblur="autoNormalize(this)"></div>
+            <div class="form-item"><label>重量 (g)</label><input type="text" id="edit-weight" onblur="autoNormalize(this)"></div>
+            <div class="confirm-buttons"><button class="btn-no" onclick="closeEditModal()">キャンセル</button><button class="btn-yes" onclick="updateCatch()">更新</button></div>
         </div>
     </div>
 
-    <!-- 確認モーダル -->
     <div id="custom-confirm-modal">
         <div class="confirm-box">
             <p id="confirm-msg" class="confirm-msg"></p>
-            <div class="confirm-buttons">
-                <button class="btn-no" id="btn-confirm-no">キャンセル</button>
-                <button class="btn-yes" id="btn-confirm-yes">実行する</button>
-            </div>
+            <div class="confirm-buttons"><button class="btn-no" id="btn-confirm-no">キャンセル</button><button class="btn-yes" id="btn-confirm-yes">実行する</button></div>
         </div>
     </div>
-
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
