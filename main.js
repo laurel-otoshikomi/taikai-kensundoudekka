@@ -832,25 +832,225 @@ async function loadHistory() {
     }
     
     container.innerHTML = ALL_HISTORY.map(item => {
-        const playerName = playerMap[item.zekken] || '未登録';
-        const date = new Date(item.created_at).toLocaleString('ja-JP');
+        const player = playerMap[item.zekken];
+        const playerName = player ? player.name : '未登録';
+        const date = new Date(item.created_at).toLocaleString('ja-JP', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         
         return `
-            <div class="history-item">
-                <div>
-                    <strong>${item.zekken}番: ${playerName}</strong>
-                    <span style="margin-left: 15px; color: #4CAF50;">${item.length}cm</span>
-                    ${item.weight > 0 ? `<span style="margin-left: 10px; color: #ccc;">${item.weight}g</span>` : ''}
-                    <div style="font-size: 12px; color: #aaa; margin-top: 5px;">${date}</div>
+            <div class="history-item" style="
+                background: rgba(255, 255, 255, 0.05);
+                padding: 15px;
+                border-radius: 10px;
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-left: 4px solid #667eea;
+            ">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <strong style="font-size: 18px;">${item.zekken}番</strong>
+                        <span style="font-size: 16px;">${playerName}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="color: #51cf66; font-weight: bold; font-size: 16px;">📏 ${item.length}cm</span>
+                        ${item.weight > 0 ? `<span style="color: #ffd93d; font-weight: bold; font-size: 16px;">⚖️ ${item.weight}g</span>` : ''}
+                    </div>
+                    <div style="font-size: 12px; color: #999; margin-top: 5px;">🕐 ${date}</div>
                 </div>
-                ${AUTH_LEVEL === 2 ? `<button class="btn btn-danger" onclick="deleteCatch(${item.id})">削除</button>` : ''}
+                ${AUTH_LEVEL === 2 ? `
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" onclick="editCatch(${item.id}, ${item.zekken}, ${item.length}, ${item.weight})" style="padding: 8px 15px; font-size: 14px;">✏️ 編集</button>
+                    <button class="btn btn-danger" onclick="deleteCatch(${item.id})" style="padding: 8px 15px; font-size: 14px;">🗑️ 削除</button>
+                </div>
+                ` : ''}
             </div>
         `;
     }).join('');
 }
 
+// 釣果編集
+window.editCatch = async function(catchId, zekken, currentLength, currentWeight) {
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    const player = ALL_PLAYERS.find(p => p.zekken === zekken);
+    const playerName = player ? player.name : `${zekken}番`;
+    
+    // カスタムダイアログを表示
+    showEditCatchDialog(catchId, zekken, playerName, currentLength, currentWeight);
+}
+
+// 釣果編集ダイアログを表示
+function showEditCatchDialog(catchId, zekken, playerName, currentLength, currentWeight) {
+    const dialogHtml = `
+        <div id="edit-catch-dialog" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        ">
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 30px;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                max-width: 500px;
+                width: 90%;
+                animation: slideIn 0.3s ease-out;
+            ">
+                <h2 style="margin-bottom: 20px; color: white; font-size: 24px; text-align: center;">
+                    ✏️ 釣果編集
+                </h2>
+                
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                    <div style="font-size: 20px; font-weight: bold; color: white;">${zekken}番: ${playerName}</div>
+                </div>
+                
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: white; margin-bottom: 5px; font-weight: bold;">長寸 (cm) <span style="color: #ff6b6b;">*</span></label>
+                        <input type="number" id="edit-length-input" value="${currentLength}" step="0.1" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 8px;
+                            background: rgba(255, 255, 255, 0.9);
+                            font-size: 16px;
+                            box-sizing: border-box;
+                        ">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: white; margin-bottom: 5px; font-weight: bold;">重量 (g)</label>
+                        <input type="number" id="edit-weight-input" value="${currentWeight || ''}" placeholder="任意" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 8px;
+                            background: rgba(255, 255, 255, 0.9);
+                            font-size: 16px;
+                            box-sizing: border-box;
+                        ">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="edit-catch-cancel-btn" style="
+                        padding: 12px 30px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.5);
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                    ">キャンセル</button>
+                    
+                    <button id="edit-catch-save-btn" style="
+                        padding: 12px 40px;
+                        background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.8);
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                    ">✅ 保存</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', dialogHtml);
+    
+    const dialog = document.getElementById('edit-catch-dialog');
+    const lengthInput = document.getElementById('edit-length-input');
+    const weightInput = document.getElementById('edit-weight-input');
+    const cancelBtn = document.getElementById('edit-catch-cancel-btn');
+    const saveBtn = document.getElementById('edit-catch-save-btn');
+    
+    // キャンセルボタン
+    cancelBtn.onclick = () => {
+        dialog.remove();
+    };
+    
+    // 保存ボタン
+    saveBtn.onclick = async () => {
+        const newLength = parseFloat(lengthInput.value);
+        const newWeight = parseFloat(weightInput.value) || 0;
+        
+        if (!newLength || newLength <= 0) {
+            showToast('長寸を入力してください', true);
+            return;
+        }
+        
+        dialog.remove();
+        
+        // データベース更新
+        const { error } = await client
+            .from('catches')
+            .update({
+                length: newLength,
+                weight: newWeight
+            })
+            .eq('id', catchId);
+        
+        if (error) {
+            console.error('❌ 更新エラー:', error);
+            showToast('❌ 更新に失敗しました', true);
+            return;
+        }
+        
+        showToast(`✅ ${playerName}の釣果を更新しました`);
+        await loadHistory();
+        await loadRanking();
+    };
+    
+    // Enterキーで保存
+    lengthInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') saveBtn.click();
+    });
+    weightInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') saveBtn.click();
+    });
+    
+    // 背景クリックで閉じる
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+            dialog.remove();
+        }
+    });
+    
+    // 初期フォーカス
+    lengthInput.focus();
+    lengthInput.select();
+}
+
 window.deleteCatch = async function(id) {
-    if (!confirm('この記録を削除しますか？')) return;
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    if (!confirm('この記録を削除しますか？\n削除すると順位表も更新されます。')) return;
     
     const { error } = await client
         .from('catches')
