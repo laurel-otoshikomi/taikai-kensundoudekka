@@ -1110,6 +1110,7 @@ function renderMainRanking(ranking, playerMap) {
     const ruleType = CONFIG.rule_type || 'max_len';
     const sort1 = CONFIG.sort1 || null;
     const sort2 = CONFIG.sort2 || null;
+    const limitCount = CONFIG.limit_count || 0;
     
     // 初期表示件数
     const displayCount = Math.min(RANKING_DISPLAY_COUNT, ranking.length);
@@ -1121,6 +1122,12 @@ function renderMainRanking(ranking, playerMap) {
         const player = playerMap[r.zekken] || {};
         const playerName = player.name || '未登録';
         const playerClub = player.club || '';
+        
+        // ルールのラベルにリミット匹数を追加
+        let ruleLabel = SORT_OPTIONS[ruleType];
+        if ((ruleType === 'limit_total_len' || ruleType === 'limit_weight') && limitCount > 0) {
+            ruleLabel += ` (${limitCount}匹)`;
+        }
         
         // 表示する値を決定
         const ruleValue = formatValue(ruleType, r[ruleType]);
@@ -1138,7 +1145,7 @@ function renderMainRanking(ranking, playerMap) {
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label">${SORT_OPTIONS[ruleType]}</div>
+                        <div class="stat-label">${ruleLabel}</div>
                         <div class="stat-value" style="color: #FFD700;">${ruleValue}</div>
                     </div>
                     ${sort1Value ? `
@@ -1642,7 +1649,9 @@ async function loadTournamentSettings() {
     
     // フォームに現在の設定値を反映
     document.getElementById('rule-type').value = CONFIG.rule_type || 'limit_total_len';
-    document.getElementById('limit-count').value = CONFIG.limit_count || 0;
+    
+    // スクロールピッカーの初期化
+    initLimitCountPicker(CONFIG.limit_count || 0);
     
     // 特別賞の表示設定を復元（デフォルトはtrue）
     const showBiggestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`);
@@ -1663,6 +1672,70 @@ async function loadTournamentSettings() {
     updateSortOptions();
     
     console.log('✅ 大会設定読み込み完了:', CONFIG);
+}
+
+// リミット匹数ピッカーの初期化
+function initLimitCountPicker(initialValue) {
+    const picker = document.getElementById('limit-count-picker');
+    const hiddenInput = document.getElementById('limit-count');
+    const options = picker.querySelectorAll('.limit-option');
+    
+    // 初期値を設定
+    hiddenInput.value = initialValue;
+    
+    // 初期スクロール位置を設定
+    const initialOption = Array.from(options).find(opt => parseInt(opt.dataset.value) === initialValue);
+    if (initialOption) {
+        initialOption.scrollIntoView({ block: 'center', behavior: 'auto' });
+        updateSelectedOption();
+    }
+    
+    // スクロールイベントで選択状態を更新
+    let scrollTimeout;
+    picker.addEventListener('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            updateSelectedOption();
+        }, 100);
+    });
+    
+    // オプションクリックで直接スクロール
+    options.forEach(option => {
+        option.addEventListener('click', function() {
+            this.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            setTimeout(() => updateSelectedOption(), 300);
+        });
+    });
+    
+    function updateSelectedOption() {
+        const pickerRect = picker.getBoundingClientRect();
+        const centerY = pickerRect.top + pickerRect.height / 2;
+        
+        let closestOption = null;
+        let closestDistance = Infinity;
+        
+        options.forEach(option => {
+            const optionRect = option.getBoundingClientRect();
+            const optionCenterY = optionRect.top + optionRect.height / 2;
+            const distance = Math.abs(centerY - optionCenterY);
+            
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestOption = option;
+            }
+        });
+        
+        if (closestOption) {
+            // すべてのオプションから選択状態を削除
+            options.forEach(opt => opt.classList.remove('selected'));
+            
+            // 最も近いオプションを選択
+            closestOption.classList.add('selected');
+            hiddenInput.value = closestOption.dataset.value;
+            
+            console.log('📊 リミット匹数変更:', hiddenInput.value);
+        }
+    }
 }
 
 // 設定を保存

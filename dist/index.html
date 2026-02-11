@@ -355,7 +355,7 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-BLKMAc8C.js"></script>
+  <script type="module" crossorigin src="/assets/main-bQQm6ryd.js"></script>
 </head>
 <body>
     <!-- トップページ -->
@@ -612,16 +612,73 @@
 
                     <div class="input-group">
                         <label>📊 リミット匹数（上位何匹をカウントするか）</label>
-                        <select id="limit-count">
-                            <option value="0">無制限（全釣果カウント）</option>
-                            <option value="1">リミット1匹</option>
-                            <option value="2">リミット2匹</option>
-                            <option value="3">リミット3匹</option>
-                            <option value="4">リミット4匹</option>
-                            <option value="5">リミット5匹</option>
-                            <option value="10">リミット10匹</option>
-                        </select>
+                        <div style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 12px;
+                            padding: 20px;
+                            position: relative;
+                        ">
+                            <div id="limit-count-picker" style="
+                                height: 200px;
+                                overflow-y: scroll;
+                                scroll-snap-type: y mandatory;
+                                -webkit-overflow-scrolling: touch;
+                                padding: 75px 0;
+                            ">
+                                <div data-value="0" class="limit-option" style="scroll-snap-align: center;">無制限 (全釣果カウント)</div>
+                                <div data-value="1" class="limit-option" style="scroll-snap-align: center;">1</div>
+                                <div data-value="2" class="limit-option selected" style="scroll-snap-align: center;">2</div>
+                                <div data-value="3" class="limit-option" style="scroll-snap-align: center;">3</div>
+                                <div data-value="4" class="limit-option" style="scroll-snap-align: center;">4</div>
+                                <div data-value="5" class="limit-option" style="scroll-snap-align: center;">5</div>
+                                <div data-value="6" class="limit-option" style="scroll-snap-align: center;">6</div>
+                                <div data-value="7" class="limit-option" style="scroll-snap-align: center;">7</div>
+                                <div data-value="8" class="limit-option" style="scroll-snap-align: center;">8</div>
+                                <div data-value="9" class="limit-option" style="scroll-snap-align: center;">9</div>
+                                <div data-value="10" class="limit-option" style="scroll-snap-align: center;">10</div>
+                            </div>
+                            <div style="
+                                position: absolute;
+                                top: 50%;
+                                left: 20px;
+                                right: 20px;
+                                height: 50px;
+                                transform: translateY(-50%);
+                                border-top: 2px solid rgba(255, 255, 255, 0.5);
+                                border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+                                pointer-events: none;
+                            "></div>
+                        </div>
+                        <input type="hidden" id="limit-count" value="2">
                     </div>
+
+                    <style>
+                        #limit-count-picker {
+                            position: relative;
+                        }
+                        
+                        .limit-option {
+                            height: 50px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 20px;
+                            font-weight: bold;
+                            color: rgba(255, 255, 255, 0.4);
+                            transition: all 0.3s ease;
+                            cursor: pointer;
+                        }
+                        
+                        .limit-option.selected {
+                            color: white;
+                            font-size: 28px;
+                            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+                        }
+                        
+                        #limit-count-picker::-webkit-scrollbar {
+                            display: none;
+                        }
+                    </style>
 
                     <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">
                         <h3 style="margin-bottom: 10px; font-size: 16px;">🏅 特別賞の表示設定</h3>
