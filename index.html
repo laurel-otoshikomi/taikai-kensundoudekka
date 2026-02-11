@@ -315,51 +315,56 @@
             <!-- 設定 -->
             <div id="settings-view" class="view">
                 <!-- 大会ルール設定 -->
-                <div class="card" id="rule-settings-card" style="display: none;">
+<div class="card" id="rule-settings-card" style="display: none;">
                     <h2>⚙️ 大会ルール設定</h2>
                     
                     <div class="input-group">
-                        <label>ルールタイプ</label>
-                        <select id="rule-type">
-                            <option value="長寸">長寸ルール</option>
-                            <option value="総重量">総重量ルール</option>
-                            <option value="匹数">匹数ルール</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label>リミット匹数（0は総力戦）</label>
-                        <input type="number" id="limit-count" min="0" placeholder="0">
-                    </div>
-
-                    <div class="input-group">
-                        <label>第1優先ソート条件</label>
-                        <select id="sort1">
-                            <option value="max_len">最大長寸</option>
-                            <option value="limit_weight">リミット重量</option>
-                            <option value="total_weight">総重量</option>
-                            <option value="count">匹数</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label>第2優先ソート条件</label>
-                        <select id="sort2">
-                            <option value="limit_weight">リミット重量</option>
-                            <option value="max_len">最大長寸</option>
-                            <option value="total_weight">総重量</option>
-                            <option value="count">匹数</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label>第3優先ソート条件</label>
-                        <select id="sort3">
-                            <option value="count">匹数</option>
-                            <option value="max_len">最大長寸</option>
-                            <option value="limit_weight">リミット重量</option>
+                        <label>🏆 大会ルール</label>
+                        <select id="rule-type" onchange="updateSortOptions()">
+                            <option value="max_len">1匹の最大長寸</option>
+                            <option value="max_weight">1匹の最大重量</option>
+                            <option value="total_count">匹数総合計</option>
                             <option value="total_weight">総重量</option>
                         </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>📊 リミット匹数（上位何匹をカウントするか）</label>
+                        <select id="limit-count">
+                            <option value="0">無制限（全釣果カウント）</option>
+                            <option value="1">リミット1匹</option>
+                            <option value="2">リミット2匹</option>
+                            <option value="3">リミット3匹</option>
+                            <option value="4">リミット4匹</option>
+                            <option value="5">リミット5匹</option>
+                            <option value="10">リミット10匹</option>
+                        </select>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-bottom: 10px; font-size: 16px;">📋 同点時の判定順位</h3>
+                        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">大会ルールで同点の場合、以下の優先順位で順位を決定します</p>
+                        
+                        <div class="input-group">
+                            <label>第1優先</label>
+                            <select id="sort1" onchange="updateSortOptions()">
+                                <option value="">選択してください</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label>第2優先</label>
+                            <select id="sort2" onchange="updateSortOptions()">
+                                <option value="">選択してください</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label>第3優先</label>
+                            <select id="sort3">
+                                <option value="">選択してください</option>
+                            </select>
+                        </div>
                     </div>
 
                     <button class="btn btn-primary" onclick="updateTournamentSettings()">設定を保存</button>
@@ -373,7 +378,8 @@
                         <h3 style="margin-bottom: 10px;">新規選手追加</h3>
                         <div class="input-group">
                             <label>ゼッケン番号</label>
-                            <input type="number" id="new-zekken">
+                            <input type="number" id="new-zekken" oninput="checkZekkenDuplicate(this.value)">
+                            <div id="zekken-warning" style="display: none; color: #ff6b6b; font-size: 13px; margin-top: 5px;"></div>
                         </div>
                         <div class="input-group">
                             <label>名前</label>
@@ -383,7 +389,7 @@
                             <label>所属（任意）</label>
                             <input type="text" id="new-club">
                         </div>
-                        <button class="btn btn-success" onclick="addPlayer()">追加</button>
+                        <button class="btn btn-success" id="add-player-btn" onclick="addPlayer()">追加</button>
                     </div>
 
                     <h3 style="margin-bottom: 10px;">登録済み選手</h3>

@@ -143,11 +143,10 @@ window.switchTab = function(tabName) {
             // 管理者のみルール設定を表示
             document.getElementById('rule-settings-card').style.display = 'block';
             loadTournamentSettings();
-            loadPlayers();
-            loadPlayerList();
-        } else {
-            document.getElementById('rule-settings-card').style.display = 'none';
-            showToast('管理者権限が必要です', true);
+        }
+        if (AUTH_LEVEL > 0) {
+            // ログインユーザーは選手管理可能
+            loadPlayers().then(() => loadPlayerList());
         }
     }
 }
@@ -473,9 +472,52 @@ async function loadPlayerList() {
                 <span style="margin-left: 10px;">${p.name}</span>
                 ${p.club ? `<span style="color: #aaa; margin-left: 10px;">(${p.club})</span>` : ''}
             </div>
-            <button class="btn btn-danger" onclick="deletePlayer(${p.zekken})">削除</button>
+            <div>
+                <button class="btn btn-primary" style="padding: 8px 15px; font-size: 14px; margin-right: 5px;" onclick="editPlayer(${p.zekken})">編集</button>
+                <button class="btn btn-danger" onclick="deletePlayer(${p.zekken})">削除</button>
+            </div>
         </div>
     `).join('');
+}
+
+// 選手情報を編集
+window.editPlayer = async function(zekken) {
+    const player = ALL_PLAYERS.find(p => p.zekken === zekken);
+    if (!player) {
+        showToast('選手が見つかりません', true);
+        return;
+    }
+    
+    // 編集フォームに現在の値をセット
+    const newName = prompt(`${zekken}番の新しい名前を入力してください`, player.name);
+    if (newName === null) return; // キャンセル
+    
+    const newClub = prompt(`${zekken}番の新しい所属を入力してください（空欄可）`, player.club || '');
+    if (newClub === null) return; // キャンセル
+    
+    if (!newName.trim()) {
+        showToast('名前は必須です', true);
+        return;
+    }
+    
+    const { error } = await client
+        .from('players')
+        .update({
+            name: newName.trim(),
+            club: newClub.trim()
+        })
+        .eq('tournament_id', CURRENT_TOURNAMENT_ID)
+        .eq('zekken', zekken);
+    
+    if (error) {
+        console.error('選手編集エラー:', error);
+        showToast('編集に失敗しました', true);
+        return;
+    }
+    
+    showToast('✅ 選手情報を更新しました');
+    await loadPlayers();
+    await loadPlayerList();
 }
 
 window.addPlayer = async function() {
@@ -490,6 +532,13 @@ window.addPlayer = async function() {
     
     if (!zekken || !name) {
         showToast('ゼッケン番号と名前は必須です', true);
+        return;
+    }
+    
+    // 重複チェック
+    const isDuplicate = ALL_PLAYERS.some(p => p.zekken === zekken);
+    if (isDuplicate) {
+        showToast(`${zekken}番は既に登録されています`, true);
         return;
     }
     
@@ -513,6 +562,8 @@ window.addPlayer = async function() {
     document.getElementById('new-zekken').value = '';
     document.getElementById('new-name').value = '';
     document.getElementById('new-club').value = '';
+    document.getElementById('zekken-warning').style.display = 'none';
+    document.getElementById('add-player-btn').disabled = false;
     
     await loadPlayers();
     await loadPlayerList();
@@ -542,6 +593,80 @@ window.deletePlayer = async function(zekken) {
 // 大会ルール設定
 // ===================================
 
+// ソート選択肢の定義
+const SORT_OPTIONS = {
+    'max_len': '1匹の最大長寸',
+    'max_weight': '1匹の最大重量',
+    'total_count': '匹数総合計',
+    'total_weight': '総重量',
+    'limit_weight': 'リミット合計重量'
+};
+
+// ゼッケン番号の重複チェック
+window.checkZekkenDuplicate = function(zekken) {
+    const warning = document.getElementById('zekken-warning');
+    const addBtn = document.getElementById('add-player-btn');
+    
+    if (!zekken) {
+        warning.style.display = 'none';
+        addBtn.disabled = false;
+        return;
+    }
+    
+    const zekkenNum = parseInt(zekken);
+    const isDuplicate = ALL_PLAYERS.some(p => p.zekken === zekkenNum);
+    
+    if (isDuplicate) {
+        warning.textContent = `⚠️ ${zekkenNum}番は既に登録されています`;
+        warning.style.display = 'block';
+        addBtn.disabled = true;
+    } else {
+        warning.textContent = `✅ ${zekkenNum}番は利用可能です`;
+        warning.style.color = '#4CAF50';
+        warning.style.display = 'block';
+        addBtn.disabled = false;
+    }
+};
+
+// ソート選択肢を更新（重複を除外）
+window.updateSortOptions = function() {
+    const ruleType = document.getElementById('rule-type').value;
+    const sort1 = document.getElementById('sort1').value;
+    const sort2 = document.getElementById('sort2').value;
+    
+    // 使用済みの選択肢を収集
+    const usedOptions = [ruleType];
+    if (sort1) usedOptions.push(sort1);
+    if (sort2) usedOptions.push(sort2);
+    
+    // 各selectを更新
+    updateSelectOptions('sort1', usedOptions, [ruleType]);
+    updateSelectOptions('sort2', usedOptions, [ruleType, sort1]);
+    updateSelectOptions('sort3', usedOptions, [ruleType, sort1, sort2]);
+}
+
+function updateSelectOptions(selectId, allUsed, excludeList) {
+    const select = document.getElementById(selectId);
+    const currentValue = select.value;
+    
+    // オプションをクリア
+    select.innerHTML = '<option value="">選択してください</option>';
+    
+    // 利用可能なオプションを追加
+    for (const [value, label] of Object.entries(SORT_OPTIONS)) {
+        // 除外リストに含まれていなければ追加
+        if (!excludeList.includes(value) || value === currentValue) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            if (value === currentValue) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        }
+    }
+}
+
 // 設定を読み込み
 async function loadTournamentSettings() {
     console.log('⚙️ 大会設定読み込み開始');
@@ -552,11 +677,19 @@ async function loadTournamentSettings() {
     }
     
     // フォームに現在の設定値を反映
-    document.getElementById('rule-type').value = CONFIG.rule_type || '長寸';
+    document.getElementById('rule-type').value = CONFIG.rule_type || CONFIG.sort1 || 'max_len';
     document.getElementById('limit-count').value = CONFIG.limit_count || 0;
-    document.getElementById('sort1').value = CONFIG.sort1 || 'max_len';
-    document.getElementById('sort2').value = CONFIG.sort2 || 'limit_weight';
-    document.getElementById('sort3').value = CONFIG.sort3 || 'count';
+    
+    // 初期選択肢を設定
+    updateSortOptions();
+    
+    // ソート条件を設定
+    document.getElementById('sort1').value = CONFIG.sort1 || '';
+    document.getElementById('sort2').value = CONFIG.sort2 || '';
+    document.getElementById('sort3').value = CONFIG.sort3 || '';
+    
+    // 選択肢を再更新
+    updateSortOptions();
     
     console.log('✅ 大会設定読み込み完了:', CONFIG);
 }
@@ -573,6 +706,12 @@ window.updateTournamentSettings = async function() {
     const sort1 = document.getElementById('sort1').value;
     const sort2 = document.getElementById('sort2').value;
     const sort3 = document.getElementById('sort3').value;
+    
+    // バリデーション
+    if (!sort1 || !sort2 || !sort3) {
+        showToast('すべての判定順位を選択してください', true);
+        return;
+    }
     
     console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3 });
     
@@ -603,8 +742,9 @@ window.updateTournamentSettings = async function() {
     showToast('✅ 設定を保存しました');
     
     // 大会情報表示を更新
-    const limitText = limitCount > 0 ? `リミット${limitCount}匹` : '総力戦';
-    document.getElementById('tournament-info').textContent = `${ruleType}ルール / ${limitText}`;
+    const limitText = limitCount > 0 ? `リミット${limitCount}匹` : '無制限';
+    const ruleName = SORT_OPTIONS[ruleType] || ruleType;
+    document.getElementById('tournament-info').textContent = `${ruleName} / ${limitText}`;
     
     // ランキングを再計算
     await loadRanking();
