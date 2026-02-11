@@ -2,10 +2,13 @@
 // 🎣 釣果管理システム - 完全新規版
 // ===================================
 
+// Supabaseをインポート
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
 // Supabase接続
 const supabaseUrl = 'https://pajzsgbnoqdinvfmvlog.supabase.co';
 const supabaseKey = 'sb_publishable_oP9HcAQrGbVNS7dHN4G8UQ_0r5gUTzD';
-const client = supabase.createClient(supabaseUrl, supabaseKey);
+const client = createClient(supabaseUrl, supabaseKey);
 
 // グローバル状態
 let AUTH_LEVEL = 0; // 0: Guest, 1: Staff, 2: Admin
