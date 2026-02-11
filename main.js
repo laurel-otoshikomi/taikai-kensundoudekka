@@ -679,12 +679,12 @@ window.deletePlayer = async function(zekken) {
 
 // ソート選択肢の定義
 const SORT_OPTIONS = {
-    'max_len': '1匹最大長寸',
-    'max_weight': '1匹最大重量',
+    // 大会ルール用
+    'limit_total_len': 'リミット合計長寸',
+    'limit_weight': 'リミット合計重量',
     'total_count': '枚数',
     'total_weight': '総重量',
-    'limit_weight': 'リミット合計重量',
-    'limit_total_len': 'リミット合計長寸',
+    // 判定順位用
     'one_max_len': '1匹最大長寸',
     'one_max_weight': '1匹最大重量'
 };
@@ -742,13 +742,14 @@ function updateSelectOptions(selectId, allUsed, excludeList) {
     // オプションをクリア
     select.innerHTML = '<option value="">選択しない</option>';
     
-    // 判定順位用の選択肢（大会ルールには含まない項目）
+    // 判定順位用の選択肢
     const judgeOptions = {
         'one_max_len': '1匹最大長寸',
         'one_max_weight': '1匹最大重量',
         'limit_total_len': 'リミット合計長寸',
         'limit_weight': 'リミット合計重量',
-        'total_count': '枚数合計'
+        'total_count': '枚数',
+        'total_weight': '総重量'
     };
     
     // 利用可能なオプションを追加
@@ -776,7 +777,7 @@ async function loadTournamentSettings() {
     }
     
     // フォームに現在の設定値を反映
-    document.getElementById('rule-type').value = CONFIG.rule_type || CONFIG.sort1 || 'max_len';
+    document.getElementById('rule-type').value = CONFIG.rule_type || 'limit_total_len';
     document.getElementById('limit-count').value = CONFIG.limit_count || 0;
     
     // 初期選択肢を設定
