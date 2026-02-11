@@ -432,6 +432,14 @@ window.searchPlayer = function() {
     console.log('🔍 検索クエリ:', searchQuery);
     console.log('🔍 選手データ数:', ALL_PLAYERS.length);
     
+    // デバッグ: 最初の3人の選手データを表示
+    if (ALL_PLAYERS.length > 0) {
+        console.log('📋 選手データサンプル（最初の3人）:');
+        ALL_PLAYERS.slice(0, 3).forEach(p => {
+            console.log(`  - ${p.zekken}番: ${p.name} (${p.club || '所属なし'})`);
+        });
+    }
+    
     // クリアボタンの表示/非表示
     clearBtn.style.display = searchQuery ? 'block' : 'none';
     
@@ -450,6 +458,13 @@ window.searchPlayer = function() {
     
     // 検索実行（ひらがな⇔カタカナ変換、全角→半角変換対応）
     const normalizedQuery = normalizeText(searchQuery);
+    
+    console.log('🔧 正規化された検索クエリ:', {
+        元: normalizedQuery.original,
+        ひらがな: normalizedQuery.hiragana,
+        カタカナ: normalizedQuery.katakana,
+        半角: normalizedQuery.halfWidth
+    });
     
     const filteredPlayers = ALL_PLAYERS.filter(player => {
         // ゼッケン番号で検索（完全一致、全角→半角対応）
