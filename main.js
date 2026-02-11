@@ -621,6 +621,98 @@ window.clearSearch = function() {
 }
 
 // ===================================
+// ゼッケン番号入力モード
+// ===================================
+
+// 入力モード切り替え
+window.switchInputMode = function(mode) {
+    const zekkenMode = document.getElementById('zekken-input-mode');
+    const searchMode = document.getElementById('search-input-mode');
+    const tabZekken = document.getElementById('tab-zekken');
+    const tabSearch = document.getElementById('tab-search');
+    
+    if (mode === 'zekken') {
+        // ゼッケン番号入力モードを表示
+        zekkenMode.style.display = 'block';
+        searchMode.style.display = 'none';
+        
+        // タブのスタイル切り替え
+        tabZekken.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        tabZekken.style.color = 'white';
+        tabZekken.style.border = 'none';
+        tabZekken.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+        
+        tabSearch.style.background = 'rgba(255, 255, 255, 0.1)';
+        tabSearch.style.color = 'rgba(255, 255, 255, 0.6)';
+        tabSearch.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+        tabSearch.style.boxShadow = 'none';
+        
+        // ゼッケン番号入力欄にフォーカス
+        setTimeout(() => {
+            document.getElementById('zekken-input').focus();
+        }, 100);
+    } else {
+        // 検索モードを表示
+        zekkenMode.style.display = 'none';
+        searchMode.style.display = 'block';
+        
+        // タブのスタイル切り替え
+        tabSearch.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        tabSearch.style.color = 'white';
+        tabSearch.style.border = 'none';
+        tabSearch.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+        
+        tabZekken.style.background = 'rgba(255, 255, 255, 0.1)';
+        tabZekken.style.color = 'rgba(255, 255, 255, 0.6)';
+        tabZekken.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+        tabZekken.style.boxShadow = 'none';
+        
+        // 検索ボックスにフォーカス
+        setTimeout(() => {
+            document.getElementById('player-search').focus();
+        }, 100);
+    }
+}
+
+// ゼッケン番号入力時の処理
+window.onZekkenInput = function() {
+    const zekkenInput = document.getElementById('zekken-input');
+    const playerInfoDisplay = document.getElementById('player-info-display');
+    const playerNameDisplay = document.getElementById('player-name-display');
+    const playerClubDisplay = document.getElementById('player-club-display');
+    const playerErrorDisplay = document.getElementById('player-error-display');
+    
+    const zekken = parseInt(zekkenInput.value);
+    
+    // 入力がない場合は何も表示しない
+    if (!zekken || isNaN(zekken)) {
+        playerInfoDisplay.style.display = 'none';
+        playerErrorDisplay.style.display = 'none';
+        return;
+    }
+    
+    // 選手を検索
+    const player = ALL_PLAYERS.find(p => p.zekken === zekken);
+    
+    if (player) {
+        // 選手が見つかった場合
+        playerInfoDisplay.style.display = 'block';
+        playerErrorDisplay.style.display = 'none';
+        
+        playerNameDisplay.textContent = `${player.zekken}番: ${player.name}`;
+        playerClubDisplay.textContent = player.club ? `所属: ${player.club}` : '所属なし';
+        
+        console.log('✅ 選手が見つかりました:', player);
+    } else {
+        // 選手が見つからない場合
+        playerInfoDisplay.style.display = 'none';
+        playerErrorDisplay.style.display = 'block';
+        
+        console.log('❌ 選手が見つかりません:', zekken);
+    }
+}
+
+// ===================================
 // 釣果登録
 // ===================================
 window.registerCatch = async function() {
@@ -629,11 +721,22 @@ window.registerCatch = async function() {
         return;
     }
     
-    const zekken = parseInt(document.getElementById('player-select').value);
+    // 現在の入力モードを確認
+    const isZekkenMode = document.getElementById('zekken-input-mode').style.display !== 'none';
+    
+    let zekken;
+    if (isZekkenMode) {
+        // ゼッケン番号入力モード
+        zekken = parseInt(document.getElementById('zekken-input').value);
+    } else {
+        // 検索モード
+        zekken = parseInt(document.getElementById('player-select').value);
+    }
+    
     const length = parseFloat(document.getElementById('length-input').value);
     const weight = parseFloat(document.getElementById('weight-input').value) || 0;
     
-    console.log('📝 登録データ:', { zekken, length, weight });
+    console.log('📝 登録データ:', { zekken, length, weight, mode: isZekkenMode ? 'ゼッケン' : '検索' });
     
     if (!zekken) {
         showToast('選手を選択してください', true);
@@ -647,7 +750,11 @@ window.registerCatch = async function() {
     
     // 選手名取得
     const player = ALL_PLAYERS.find(p => p.zekken == zekken);
-    const playerName = player ? player.name : `${zekken}番`;
+    if (!player) {
+        showToast('選手が見つかりません', true);
+        return;
+    }
+    const playerName = player.name;
     
     // データベースに登録（確認ダイアログなし）
     const { error } = await client
@@ -671,7 +778,15 @@ window.registerCatch = async function() {
     showToast(`✅ ${playerName}: ${length}cm ${weight > 0 ? weight + 'g' : ''} を登録しました！`);
     
     // フォームをリセット
-    document.getElementById('player-select').value = '';
+    if (isZekkenMode) {
+        document.getElementById('zekken-input').value = '';
+        document.getElementById('player-info-display').style.display = 'none';
+        document.getElementById('player-error-display').style.display = 'none';
+        // ゼッケン番号入力欄にフォーカス
+        document.getElementById('zekken-input').focus();
+    } else {
+        document.getElementById('player-select').value = '';
+    }
     document.getElementById('length-input').value = '';
     document.getElementById('weight-input').value = '';
     

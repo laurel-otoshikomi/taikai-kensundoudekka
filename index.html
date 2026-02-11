@@ -487,28 +487,101 @@
                 <div id="input-form" style="display: none;">
                     <div class="card">
                         <h2>📝 釣果登録</h2>
-                        <div class="input-group">
-                            <label style="font-size: 16px; font-weight: bold; color: #fff;">🔍 選手を検索</label>
-                            <p style="font-size: 13px; color: #ccc; margin-bottom: 8px;">選手名、ゼッケン番号、所属で検索できます（ひらがな・カタカナ対応）</p>
-                            <div style="position: relative;">
-                                <input type="text" id="player-search" placeholder="例: たなか、田中、5番..." oninput="searchPlayer()" style="border: 2px solid #5c7cfa; box-shadow: 0 2px 8px rgba(92, 124, 250, 0.3);">
-                                <button onclick="clearSearch()" id="clear-search-btn" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255, 100, 100, 0.8); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: white; display: none; font-weight: bold;">✕</button>
+                        
+                        <!-- 入力方法切り替えタブ -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
+                            <button id="tab-zekken" onclick="switchInputMode('zekken')" style="
+                                flex: 1;
+                                padding: 12px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 15px;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                            ">🎯 ゼッケン番号入力</button>
+                            
+                            <button id="tab-search" onclick="switchInputMode('search')" style="
+                                flex: 1;
+                                padding: 12px;
+                                background: rgba(255, 255, 255, 0.1);
+                                color: rgba(255, 255, 255, 0.6);
+                                border: 2px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: bold;
+                                font-size: 15px;
+                                transition: all 0.3s ease;
+                            ">🔍 検索</button>
+                        </div>
+                        
+                        <!-- ゼッケン番号入力モード -->
+                        <div id="zekken-input-mode">
+                            <div class="input-group">
+                                <label style="font-size: 16px; font-weight: bold; color: #fff;">🎯 ゼッケン番号</label>
+                                <p style="font-size: 13px; color: #ccc; margin-bottom: 8px;">選手のゼッケン番号を入力してください</p>
+                                <input type="number" id="zekken-input" placeholder="例: 5" min="1" oninput="onZekkenInput()" onkeypress="if(event.key==='Enter') document.getElementById('length-input').focus()" style="
+                                    border: 2px solid #667eea;
+                                    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+                                    font-size: 20px;
+                                    text-align: center;
+                                    font-weight: bold;
+                                ">
+                                <div id="player-info-display" style="
+                                    margin-top: 10px;
+                                    padding: 15px;
+                                    border-radius: 8px;
+                                    background: rgba(255, 255, 255, 0.1);
+                                    min-height: 50px;
+                                    display: none;
+                                ">
+                                    <div style="font-size: 18px; font-weight: bold; color: #51cf66;" id="player-name-display"></div>
+                                    <div style="font-size: 14px; color: #ccc; margin-top: 5px;" id="player-club-display"></div>
+                                </div>
+                                <div id="player-error-display" style="
+                                    margin-top: 10px;
+                                    padding: 15px;
+                                    border-radius: 8px;
+                                    background: rgba(255, 107, 107, 0.2);
+                                    border: 2px solid #ff6b6b;
+                                    color: #ff6b6b;
+                                    font-weight: bold;
+                                    display: none;
+                                ">
+                                    ❌ この番号の選手は登録されていません
+                                </div>
                             </div>
-                            <div id="search-result-count" style="font-size: 13px; color: #51cf66; margin-top: 8px; font-weight: bold;"></div>
                         </div>
-                        <div class="input-group">
-                            <label style="font-size: 16px; font-weight: bold; color: #fff;">選手選択</label>
-                            <select id="player-select" style="border: 2px solid #aaa;">
-                                <option value="">選手を選択してください</option>
-                            </select>
+                        
+                        <!-- 検索モード -->
+                        <div id="search-input-mode" style="display: none;">
+                            <div class="input-group">
+                                <label style="font-size: 16px; font-weight: bold; color: #fff;">🔍 選手を検索</label>
+                                <p style="font-size: 13px; color: #ccc; margin-bottom: 8px;">選手名、ゼッケン番号、所属で検索できます（ひらがな・カタカナ対応）</p>
+                                <div style="position: relative;">
+                                    <input type="text" id="player-search" placeholder="例: たなか、田中、5番..." oninput="searchPlayer()" style="border: 2px solid #5c7cfa; box-shadow: 0 2px 8px rgba(92, 124, 250, 0.3);">
+                                    <button onclick="clearSearch()" id="clear-search-btn" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255, 100, 100, 0.8); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: white; display: none; font-weight: bold;">✕</button>
+                                </div>
+                                <div id="search-result-count" style="font-size: 13px; color: #51cf66; margin-top: 8px; font-weight: bold;"></div>
+                            </div>
+                            <div class="input-group">
+                                <label style="font-size: 16px; font-weight: bold; color: #fff;">選手選択</label>
+                                <select id="player-select" style="border: 2px solid #aaa;">
+                                    <option value="">選手を選択してください</option>
+                                </select>
+                            </div>
                         </div>
+                        
                         <div class="input-group">
                             <label>長寸 (cm)</label>
-                            <input type="number" id="length-input" placeholder="50.5" step="0.1">
+                            <input type="number" id="length-input" placeholder="50.5" step="0.1" onkeypress="if(event.key==='Enter') document.getElementById('weight-input').focus()">
                         </div>
                         <div class="input-group">
                             <label>重量 (g)</label>
-                            <input type="number" id="weight-input" placeholder="2100">
+                            <input type="number" id="weight-input" placeholder="2100" onkeypress="if(event.key==='Enter') registerCatch()">
                         </div>
                         <button class="btn btn-success" onclick="registerCatch()">登録する</button>
                     </div>
