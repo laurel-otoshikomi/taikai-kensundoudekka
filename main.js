@@ -679,14 +679,14 @@ window.deletePlayer = async function(zekken) {
 
 // ソート選択肢の定義
 const SORT_OPTIONS = {
-    'max_len': '長寸',
-    'max_weight': '重量',
+    'max_len': '1匹最大長寸',
+    'max_weight': '1匹最大重量',
     'total_count': '枚数',
     'total_weight': '総重量',
     'limit_weight': 'リミット合計重量',
+    'limit_total_len': 'リミット合計長寸',
     'one_max_len': '1匹最大長寸',
-    'one_max_weight': '1匹最大重量',
-    'limit_total_len': 'リミット合計長寸'
+    'one_max_weight': '1匹最大重量'
 };
 
 // ゼッケン番号の重複チェック
