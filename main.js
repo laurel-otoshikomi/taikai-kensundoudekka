@@ -818,12 +818,14 @@ window.registerCatch = async function() {
 // ===================================
 async function loadHistory() {
     console.log('📋 履歴読み込み開始');
+    console.log('👥 ALL_PLAYERS:', ALL_PLAYERS);
     
     // 選手名マップを作成
     const playerMap = {};
     ALL_PLAYERS.forEach(p => {
         playerMap[p.zekken] = p.name;
     });
+    console.log('🗺️ playerMap:', playerMap);
     
     // 釣果を取得
     const { data, error } = await client
@@ -850,8 +852,7 @@ async function loadHistory() {
     }
     
     container.innerHTML = ALL_HISTORY.map(item => {
-        const player = playerMap[item.zekken];
-        const playerName = player ? player.name : '未登録';
+        const playerName = playerMap[item.zekken] || '未登録';
         const date = new Date(item.created_at).toLocaleString('ja-JP', {
             month: '2-digit',
             day: '2-digit',
