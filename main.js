@@ -73,6 +73,11 @@ async function openTournament(tournamentId) {
     
     CONFIG = data;
     console.log('✅ 大会情報取得:', CONFIG);
+    console.log('📋 大会ルール:', CONFIG.rule_type);
+    console.log('📊 リミット匹数:', CONFIG.limit_count);
+    console.log('🎯 優先順位1:', CONFIG.sort1);
+    console.log('🎯 優先順位2:', CONFIG.sort2);
+    console.log('🎯 優先順位3:', CONFIG.sort3);
     
     // UIを更新
     document.getElementById('tournament-name').textContent = CONFIG.name;
@@ -351,6 +356,9 @@ window.deleteCatch = async function(id) {
 // ===================================
 async function loadRanking() {
     console.log('🏆 ランキング計算開始');
+    console.log('📋 現在のCONFIG:', CONFIG);
+    console.log('📊 リミット匹数:', CONFIG.limit_count);
+    console.log('🎯 大会ルール:', CONFIG.rule_type);
     
     const { data, error } = await client
         .from('catches')
@@ -395,6 +403,14 @@ async function loadRanking() {
         const sortedLengths = [...s.lengths].sort((a, b) => b - a);
         const sortedWeights = [...s.weights].sort((a, b) => b - a);
         const limitCount = CONFIG.limit_count || 999;
+        
+        console.log(`📊 選手${s.zekken}番の計算:`, {
+            全釣果数: s.lengths.length,
+            リミット匹数: limitCount,
+            全長寸: sortedLengths,
+            リミット長寸: sortedLengths.slice(0, limitCount)
+        });
+        
         const limitWeight = sortedWeights.slice(0, limitCount).reduce((sum, w) => sum + w, 0);
         const limitTotalLen = sortedLengths.slice(0, limitCount).reduce((sum, l) => sum + l, 0);
         
