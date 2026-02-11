@@ -88,6 +88,9 @@ async function openTournament(tournamentId) {
     document.getElementById('top-page').style.display = 'none';
     document.getElementById('tournament-page').style.display = 'block';
     
+    // 🔥 ログイン前でも選手データを読み込む
+    await loadPlayers();
+    
     // ランキング読み込み
     await loadRanking();
     
@@ -842,18 +845,28 @@ window.updateTournamentSettings = async function() {
     
     console.log('✅ 更新後のデータ:', data);
     
+    // 🔥 Supabaseから最新のデータを再取得
+    const { data: updatedConfig, error: fetchError } = await client
+        .from('tournaments')
+        .select('*')
+        .eq('id', CURRENT_TOURNAMENT_ID)
+        .single();
+    
+    if (fetchError || !updatedConfig) {
+        console.error('❌ 設定再取得エラー:', fetchError);
+        showToast('❌ 設定の再取得に失敗しました', true);
+        return;
+    }
+    
     // CONFIGを更新
-    CONFIG.rule_type = ruleType;
-    CONFIG.limit_count = limitCount;
-    CONFIG.sort1 = sort1 || null;
-    CONFIG.sort2 = sort2 || null;
-    CONFIG.sort3 = sort3 || null;
+    CONFIG = updatedConfig;
+    console.log('✅ 再取得後のCONFIG:', CONFIG);
     
     showToast('✅ 設定を保存しました');
     
     // 大会情報表示を更新
-    const limitText = limitCount > 0 ? `リミット${limitCount}匹` : '無制限';
-    const ruleName = SORT_OPTIONS[ruleType] || ruleType;
+    const limitText = CONFIG.limit_count > 0 ? `リミット${CONFIG.limit_count}匹` : '無制限';
+    const ruleName = SORT_OPTIONS[CONFIG.rule_type] || CONFIG.rule_type;
     document.getElementById('tournament-info').textContent = `${ruleName} / ${limitText}`;
     
     // ランキングを再計算
