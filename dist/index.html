@@ -231,14 +231,111 @@
             margin-bottom: 30px;
         }
         
-        /* レスポンシブ対応: モバイルでは縦並び */
+        /* チェックボックススタイル */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        /* レスポンシブ対応: モバイル */
         @media (max-width: 768px) {
+            /* タイトルとヘッダー */
+            h1 {
+                font-size: 32px !important;
+            }
+            
+            h2 {
+                font-size: 20px !important;
+            }
+            
+            h3 {
+                font-size: 16px !important;
+            }
+            
+            /* コンテナのパディング削減 */
+            .container {
+                padding: 10px;
+            }
+            
+            /* カードのパディング削減 */
+            .card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            /* タブのフォントサイズ削減 */
+            .tab {
+                padding: 10px 8px;
+                font-size: 14px;
+            }
+            
+            /* ボタンのパディング削減 */
+            .btn {
+                padding: 12px;
+                font-size: 16px;
+            }
+            
+            /* 入力フィールドのパディング削減 */
+            .input-group input,
+            .input-group select {
+                padding: 10px;
+                font-size: 16px;
+            }
+            
+            /* ログインステータス */
+            #login-status {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+            }
+            
+            #login-status button {
+                width: 100%;
+            }
+            
+            /* 賞表示を縦並び */
             .prize-grid {
                 grid-template-columns: 1fr !important;
             }
+            
+            /* ランキングアイテムのフォントサイズ削減 */
+            .ranking-item {
+                padding: 12px;
+            }
+            
+            .ranking-header h3 {
+                font-size: 18px;
+            }
+            
+            .stat-value {
+                font-size: 18px !important;
+            }
+            
+            /* トップに戻るボタンのサイズ調整 */
+            .btn-danger {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-Id93FCFo.js"></script>
+  <script type="module" crossorigin src="/assets/main-h_woo9s5.js"></script>
 </head>
 <body>
     <!-- トップページ -->
@@ -427,6 +524,21 @@
                             <option value="5">リミット5匹</option>
                             <option value="10">リミット10匹</option>
                         </select>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin-bottom: 10px; font-size: 16px;">🏅 特別賞の表示設定</h3>
+                        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">順位表に表示する特別賞を選択してください</p>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-biggest-fish" checked>
+                            <label for="show-biggest-fish">🐟 大物賞を表示する（1匹最大長寸）</label>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-smallest-fish" checked>
+                            <label for="show-smallest-fish">🎣 最小寸賞を表示する（1匹最小長寸）</label>
+                        </div>
                     </div>
 
                     <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">

@@ -655,13 +655,17 @@ async function loadRanking() {
                 lengths: [],
                 weights: [],
                 min_len: c.length,
-                max_len: c.length
+                max_len: c.length,
+                min_weight: c.weight || 0,
+                max_weight: c.weight || 0
             };
         }
         stats[c.zekken].lengths.push(c.length);
         stats[c.zekken].weights.push(c.weight || 0);
         stats[c.zekken].min_len = Math.min(stats[c.zekken].min_len, c.length);
         stats[c.zekken].max_len = Math.max(stats[c.zekken].max_len, c.length);
+        stats[c.zekken].min_weight = Math.min(stats[c.zekken].min_weight, c.weight || 0);
+        stats[c.zekken].max_weight = Math.max(stats[c.zekken].max_weight, c.weight || 0);
     });
     
     // ランキング配列に変換
@@ -685,9 +689,10 @@ async function loadRanking() {
             count: s.lengths.length,
             max_len: s.max_len,
             min_len: s.min_len,
-            max_weight: Math.max(...s.weights),
+            max_weight: s.max_weight,
+            min_weight: s.min_weight,
             one_max_len: s.max_len,
-            one_max_weight: Math.max(...s.weights),
+            one_max_weight: s.max_weight,
             total_weight: s.weights.reduce((sum, w) => sum + w, 0),
             total_count: s.lengths.length,
             limit_weight: limitWeight,
@@ -719,10 +724,27 @@ async function loadRanking() {
     console.log('✅ ランキング計算完了:', ranking.length, '人');
     
     // 大物賞を表示（1匹最大長寸順位、同人物除外、3位まで）
-    renderBiggestFish(ranking, playerMap);
+    const showBiggestFish = document.getElementById('show-biggest-fish')?.checked ?? true;
+    if (showBiggestFish) {
+        document.querySelector('.prize-grid')?.style.setProperty('display', 'grid');
+        renderBiggestFish(ranking, playerMap);
+    } else {
+        document.getElementById('biggest-fish-list').closest('.card').style.display = 'none';
+    }
     
     // 最小寸賞を表示（1匹最小長寸順位、同人物除外、3位まで）
-    renderSmallestFish(ranking, playerMap);
+    const showSmallestFish = document.getElementById('show-smallest-fish')?.checked ?? true;
+    if (showSmallestFish) {
+        document.querySelector('.prize-grid')?.style.setProperty('display', 'grid');
+        renderSmallestFish(ranking, playerMap);
+    } else {
+        document.getElementById('smallest-fish-list').closest('.card').style.display = 'none';
+    }
+    
+    // どちらも非表示の場合は prize-grid を非表示
+    if (!showBiggestFish && !showSmallestFish) {
+        document.querySelector('.prize-grid')?.style.setProperty('display', 'none');
+    }
     
     // 大会順位を表示（初期10位まで）
     renderMainRanking(ranking, playerMap);
@@ -730,7 +752,16 @@ async function loadRanking() {
 
 // 大物賞を表示
 function renderBiggestFish(ranking, playerMap) {
-    const biggestRanking = [...ranking].sort((a, b) => b.max_len - a.max_len);
+    const card = document.getElementById('biggest-fish-list').closest('.card');
+    card.style.display = 'block';
+    
+    const biggestRanking = [...ranking].sort((a, b) => {
+        // 長寸が同じ場合は重量が重い方が上位
+        if (b.max_len === a.max_len) {
+            return b.max_weight - a.max_weight;
+        }
+        return b.max_len - a.max_len;
+    });
     const displayedZekkens = new Set();
     const top3 = [];
     
@@ -770,7 +801,16 @@ function renderBiggestFish(ranking, playerMap) {
 
 // 最小寸賞を表示
 function renderSmallestFish(ranking, playerMap) {
-    const smallestRanking = [...ranking].sort((a, b) => a.min_len - b.min_len);
+    const card = document.getElementById('smallest-fish-list').closest('.card');
+    card.style.display = 'block';
+    
+    const smallestRanking = [...ranking].sort((a, b) => {
+        // 長寸が同じ場合は重量が軽い方が上位
+        if (a.min_len === b.min_len) {
+            return a.min_weight - b.min_weight;
+        }
+        return a.min_len - b.min_len;
+    });
     const displayedZekkens = new Set();
     const top3 = [];
     
@@ -1167,6 +1207,13 @@ async function loadTournamentSettings() {
     document.getElementById('rule-type').value = CONFIG.rule_type || 'limit_total_len';
     document.getElementById('limit-count').value = CONFIG.limit_count || 0;
     
+    // 特別賞の表示設定を復元（デフォルトはtrue）
+    const showBiggestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`);
+    const showSmallestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`);
+    
+    document.getElementById('show-biggest-fish').checked = showBiggestFish === null ? true : showBiggestFish === 'true';
+    document.getElementById('show-smallest-fish').checked = showSmallestFish === null ? true : showSmallestFish === 'true';
+    
     // 初期選択肢を設定
     updateSortOptions();
     
@@ -1194,6 +1241,14 @@ window.updateTournamentSettings = async function() {
     const sort2 = document.getElementById('sort2').value;
     const sort3 = document.getElementById('sort3').value;
     
+    // 特別賞の表示設定を取得
+    const showBiggestFish = document.getElementById('show-biggest-fish').checked;
+    const showSmallestFish = document.getElementById('show-smallest-fish').checked;
+    
+    // localStorageに保存（大会ごとに設定を保持）
+    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`, showBiggestFish);
+    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`, showSmallestFish);
+    
     // バリデーション: 同じ項目が選択されていないかチェック
     const selectedItems = [sort1, sort2, sort3].filter(v => v !== '');
     const uniqueItems = new Set(selectedItems);
@@ -1203,7 +1258,7 @@ window.updateTournamentSettings = async function() {
         return;
     }
     
-    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3 });
+    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3, showBiggestFish, showSmallestFish });
     console.log('💾 更新条件:', { id: CURRENT_TOURNAMENT_ID });
     console.log('💾 更新前のCONFIG.limit_count:', CONFIG.limit_count);
     
