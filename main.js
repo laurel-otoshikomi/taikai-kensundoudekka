@@ -817,6 +817,7 @@ window.updateTournamentSettings = async function() {
     
     console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3 });
     console.log('💾 更新条件:', { id: CURRENT_TOURNAMENT_ID });
+    console.log('💾 更新前のCONFIG.limit_count:', CONFIG.limit_count);
     
     const { data, error } = await client
         .from('tournaments')
@@ -830,9 +831,15 @@ window.updateTournamentSettings = async function() {
         .eq('id', CURRENT_TOURNAMENT_ID)
         .select();
     
+    console.log('💾 UPDATE結果 - data:', data);
+    console.log('💾 UPDATE結果 - error:', error);
+    
     if (error) {
         console.error('❌ 設定保存エラー:', error);
         console.error('❌ エラー詳細:', JSON.stringify(error, null, 2));
+        console.error('❌ エラーコード:', error.code);
+        console.error('❌ エラーメッセージ:', error.message);
+        alert(`❌ 設定保存エラー: ${error.message}\nコード: ${error.code}\n\n⚠️ Supabase RLS UPDATE権限が設定されていない可能性があります。\nCRITICAL_FIX.sqlを実行してください。`);
         showToast(`❌ 設定の保存に失敗しました: ${error.message || error.code || '不明なエラー'}`, true);
         return;
     }
