@@ -1107,6 +1107,27 @@ async function loadRanking() {
     console.log('📊 リミット匹数:', CONFIG.limit_count);
     console.log('🎯 大会ルール:', CONFIG.rule_type);
     
+    // 順位非表示設定を確認
+    const isRankingHidden = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`) === 'true';
+    console.log('🔒 順位非表示設定:', isRankingHidden);
+    
+    // 管理者以外で順位が非表示の場合
+    if (isRankingHidden && AUTH_LEVEL < 2) {
+        console.log('🚫 順位は非表示に設定されています（管理者以外）');
+        document.getElementById('ranking-list').style.display = 'none';
+        document.getElementById('ranking-hidden-message').style.display = 'block';
+        document.getElementById('show-more-btn').style.display = 'none';
+        
+        // 特別賞も非表示
+        document.getElementById('biggest-fish-list').innerHTML = '<div class="empty-state">順位発表までお待ちください</div>';
+        document.getElementById('smallest-fish-list').innerHTML = '<div class="empty-state">順位発表までお待ちください</div>';
+        return;
+    }
+    
+    // 管理者または順位が表示される場合
+    document.getElementById('ranking-list').style.display = 'block';
+    document.getElementById('ranking-hidden-message').style.display = 'none';
+    
     const { data, error } = await client
         .from('catches')
         .select('*')
@@ -2130,6 +2151,25 @@ async function loadTournamentSettings() {
     
     console.log('🏆 特別賞設定:', { show_biggest_fish: CONFIG.show_biggest_fish, show_smallest_fish: CONFIG.show_smallest_fish });
     
+    // 順位非表示設定を復元（デフォルトはfalse）
+    const hideRanking = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`);
+    const hideRankingBool = hideRanking === 'true';
+    
+    const hideRankingCheckbox = document.getElementById('hide-ranking');
+    if (hideRankingCheckbox) {
+        hideRankingCheckbox.checked = hideRankingBool;
+    }
+    
+    // 管理者の場合、非表示通知を表示
+    if (AUTH_LEVEL === 2) {
+        const notice = document.getElementById('ranking-hidden-notice');
+        if (notice) {
+            notice.style.display = hideRankingBool ? 'block' : 'none';
+        }
+    }
+    
+    console.log('🔒 順位非表示設定:', hideRankingBool);
+    
     // 初期選択肢を設定
     updateSortOptions();
     
@@ -2225,9 +2265,15 @@ window.updateTournamentSettings = async function() {
     const showBiggestFish = document.getElementById('show-biggest-fish').checked;
     const showSmallestFish = document.getElementById('show-smallest-fish').checked;
     
+    // 順位非表示設定を取得
+    const hideRanking = document.getElementById('hide-ranking').checked;
+    
     // localStorageに保存（大会ごとに設定を保持）
     localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`, showBiggestFish);
     localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`, showSmallestFish);
+    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`, hideRanking);
+    
+    console.log('💾 順位非表示設定を保存:', hideRanking);
     
     // バリデーション: 同じ項目が選択されていないかチェック
     const selectedItems = [sort1, sort2, sort3].filter(v => v !== '');
@@ -3349,3 +3395,40 @@ window.createTournament = async function() {
     }
     return result;
 }
+
+// ===================================
+// 順位表示制御
+// ===================================
+
+// 順位表示の切り替え
+window.toggleRankingVisibility = function() {
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        document.getElementById('hide-ranking').checked = false;
+        return;
+    }
+    
+    const hideRanking = document.getElementById('hide-ranking').checked;
+    
+    // localStorageに即座に保存
+    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`, hideRanking);
+    
+    // 管理者通知を更新
+    const notice = document.getElementById('ranking-hidden-notice');
+    if (notice) {
+        notice.style.display = hideRanking ? 'block' : 'none';
+    }
+    
+    if (hideRanking) {
+        showToast('🔒 順位表を非表示にしました（参加者から見えません）');
+        console.log('🔒 順位非表示に設定');
+    } else {
+        showToast('🔓 順位表を表示に戻しました');
+        console.log('🔓 順位表示に設定');
+    }
+    
+    // 順位表を再読み込み（管理者は常に表示、参加者は非表示）
+    loadRanking();
+}
+
+console.log('✅ 順位表示制御機能を読み込みました');

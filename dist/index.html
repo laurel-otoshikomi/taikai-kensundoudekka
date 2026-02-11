@@ -385,7 +385,7 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-CWfadHFj.js"></script>
+  <script type="module" crossorigin src="/assets/main-Dnf5xFr5.js"></script>
 </head>
 <body>
     <!-- 大会一覧ページ -->
@@ -520,6 +520,23 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- 順位非表示メッセージ -->
+                    <div id="ranking-hidden-message" style="display: none; text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.05); border-radius: 15px; border: 2px dashed rgba(255,255,255,0.3);">
+                        <div style="font-size: 60px; margin-bottom: 20px;">🔒</div>
+                        <h3 style="font-size: 24px; margin-bottom: 15px; color: #ffb3b3;">順位は現在非表示です</h3>
+                        <p style="font-size: 16px; color: #ccc; line-height: 1.6;">
+                            管理者により順位表が一時的に非表示に設定されています。<br>
+                            大会終了後に結果が発表されます。お楽しみに！
+                        </p>
+                        <div style="margin-top: 30px; padding: 20px; background: rgba(102,126,234,0.2); border-radius: 12px; border-left: 4px solid #667eea;">
+                            <p style="font-size: 14px; color: #ccc; margin: 0;">
+                                💡 ヒント: 釣果は引き続き登録できます。<br>
+                                順位が見えない分、ドキドキ感が増して盛り上がります！
+                            </p>
+                        </div>
+                    </div>
+                    
                     <div id="ranking-list"></div>
                     <button class="btn btn-primary" id="show-more-btn" onclick="showMoreRankings()" style="display: none; width: 100%; margin-top: 15px;">
                         続きを見る
@@ -762,6 +779,24 @@
                         <div class="checkbox-group">
                             <input type="checkbox" id="show-smallest-fish" checked>
                             <label for="show-smallest-fish">🎣 最小寸賞を表示する（1匹最小長寸）</label>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255,107,107,0.15); padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid rgba(255,107,107,0.3);">
+                        <h3 style="margin-bottom: 10px; font-size: 16px;">🔒 順位表の表示制御</h3>
+                        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">
+                            大会終盤の盛り上がりのため、順位表示を一時的に非表示にできます<br>
+                            <span style="color: #ffb3b3;">※ 管理者以外は順位が見えなくなります</span>
+                        </p>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="hide-ranking" onchange="toggleRankingVisibility()">
+                            <label for="hide-ranking" style="font-weight: bold; color: #ffb3b3;">🚫 順位表を非表示にする（参加者から見えなくする）</label>
+                        </div>
+                        
+                        <div id="ranking-hidden-notice" style="display: none; margin-top: 15px; padding: 12px; background: rgba(255,107,107,0.2); border-radius: 8px; border-left: 4px solid #ff6b6b;">
+                            <strong style="color: #ffb3b3;">⚠️ 現在、順位表は非表示です</strong><br>
+                            <span style="font-size: 12px; color: #ccc;">管理者のみ順位を確認できます。参加者には「順位は集計中です」と表示されます。</span>
                         </div>
                     </div>
 
