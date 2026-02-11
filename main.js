@@ -242,10 +242,7 @@ window.registerCatch = async function() {
     const player = ALL_PLAYERS.find(p => p.zekken == zekken);
     const playerName = player ? player.name : `${zekken}番`;
     
-    const confirmed = confirm(`登録しますか？\n\n${playerName}\n長寸: ${length}cm\n重量: ${weight}g`);
-    if (!confirmed) return;
-    
-    // データベースに登録
+    // データベースに登録（確認ダイアログなし）
     const { error } = await client
         .from('catches')
         .insert({
@@ -262,7 +259,9 @@ window.registerCatch = async function() {
     }
     
     console.log('✅ 登録成功');
-    showToast('✅ 登録しました！');
+    
+    // トーストで綺麗に表示
+    showToast(`✅ ${playerName}: ${length}cm ${weight > 0 ? weight + 'g' : ''} を登録しました！`);
     
     // フォームをリセット
     document.getElementById('player-select').value = '';
@@ -595,8 +594,8 @@ window.deletePlayer = async function(zekken) {
 
 // ソート選択肢の定義
 const SORT_OPTIONS = {
-    'max_len': '1匹の最大長寸',
-    'max_weight': '1匹の最大重量',
+    'max_len': '最大長寸',
+    'max_weight': '最大重量',
     'total_count': '匹数総合計',
     'total_weight': '総重量',
     'limit_weight': 'リミット合計重量'
@@ -650,7 +649,7 @@ function updateSelectOptions(selectId, allUsed, excludeList) {
     const currentValue = select.value;
     
     // オプションをクリア
-    select.innerHTML = '<option value="">選択してください</option>';
+    select.innerHTML = '<option value="">選択しない</option>';
     
     // 利用可能なオプションを追加
     for (const [value, label] of Object.entries(SORT_OPTIONS)) {
@@ -707,9 +706,12 @@ window.updateTournamentSettings = async function() {
     const sort2 = document.getElementById('sort2').value;
     const sort3 = document.getElementById('sort3').value;
     
-    // バリデーション
-    if (!sort1 || !sort2 || !sort3) {
-        showToast('すべての判定順位を選択してください', true);
+    // バリデーション: 同じ項目が選択されていないかチェック
+    const selectedItems = [sort1, sort2, sort3].filter(v => v !== '');
+    const uniqueItems = new Set(selectedItems);
+    
+    if (selectedItems.length !== uniqueItems.size) {
+        showToast('判定順位で同じ項目が選択されています', true);
         return;
     }
     
@@ -720,9 +722,9 @@ window.updateTournamentSettings = async function() {
         .update({
             rule_type: ruleType,
             limit_count: limitCount,
-            sort1: sort1,
-            sort2: sort2,
-            sort3: sort3
+            sort1: sort1 || null,
+            sort2: sort2 || null,
+            sort3: sort3 || null
         })
         .eq('id', CURRENT_TOURNAMENT_ID);
     
@@ -735,9 +737,9 @@ window.updateTournamentSettings = async function() {
     // CONFIGを更新
     CONFIG.rule_type = ruleType;
     CONFIG.limit_count = limitCount;
-    CONFIG.sort1 = sort1;
-    CONFIG.sort2 = sort2;
-    CONFIG.sort3 = sort3;
+    CONFIG.sort1 = sort1 || null;
+    CONFIG.sort2 = sort2 || null;
+    CONFIG.sort3 = sort3 || null;
     
     showToast('✅ 設定を保存しました');
     
