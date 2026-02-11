@@ -727,6 +727,38 @@
                 <div class="card">
                     <h2>👥 選手管理</h2>
                     
+                    <!-- CSVインポート -->
+                    <div style="margin-bottom: 30px; background: rgba(102, 126, 234, 0.1); padding: 20px; border-radius: 12px; border: 2px dashed rgba(102, 126, 234, 0.5);">
+                        <h3 style="margin-bottom: 15px; color: #667eea;">📊 CSVファイルで一括登録</h3>
+                        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">
+                            Excelやスプレッドシートで作成したCSVファイルから、選手を一括で登録できます。<br>
+                            大人数の大会準備が効率化されます！
+                        </p>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #667eea;">📝 CSVフォーマット:</strong>
+                            <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px; margin-top: 8px; font-family: monospace; font-size: 12px; overflow-x: auto;">
+                                ゼッケン番号,名前,読み仮名,所属<br>
+                                1,山田太郎,やまだたろう,Aチーム<br>
+                                2,佐藤花子,さとうはなこ,Bチーム
+                            </div>
+                        </div>
+                        
+                        <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleCSVFile(event)">
+                        <button class="btn btn-primary" onclick="document.getElementById('csv-file-input').click()" style="width: 100%; padding: 15px; font-size: 16px;">
+                            📂 CSVファイルを選択
+                        </button>
+                        
+                        <div id="csv-preview" style="display: none; margin-top: 20px;">
+                            <h4 style="margin-bottom: 10px; color: #51cf66;">✅ プレビュー</h4>
+                            <div id="csv-preview-content" style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;"></div>
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button class="btn btn-success" onclick="importCSV()" style="flex: 1;">✅ インポート実行</button>
+                                <button class="btn" onclick="cancelCSVImport()" style="flex: 1; background: rgba(255, 107, 107, 0.2); border: 2px solid #ff6b6b;">❌ キャンセル</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div style="margin-bottom: 20px;">
                         <h3 style="margin-bottom: 10px;">新規選手追加</h3>
                         <div class="input-group">

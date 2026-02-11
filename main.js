@@ -1524,6 +1524,241 @@ window.addPlayer = async function() {
     await loadPlayerList();
 }
 
+// ===================================
+// CSVインポート機能
+// ===================================
+
+let CSV_DATA = []; // パース済みCSVデータ
+
+// CSVファイル選択時の処理
+window.handleCSVFile = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    console.log('📂 CSVファイル選択:', file.name);
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        parseCSV(text);
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+
+// CSVをパースする
+function parseCSV(text) {
+    try {
+        console.log('📊 CSVパース開始');
+        
+        // 行に分割（改行コードに対応）
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        
+        if (lines.length < 2) {
+            showToast('❌ CSVファイルが空です', true);
+            return;
+        }
+        
+        // ヘッダー行を取得
+        const headerLine = lines[0];
+        const headers = headerLine.split(',').map(h => h.trim());
+        
+        console.log('📋 ヘッダー:', headers);
+        
+        // ヘッダー検証
+        const requiredHeaders = ['ゼッケン番号', '名前'];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        
+        if (missingHeaders.length > 0) {
+            showToast(`❌ 必須列が不足: ${missingHeaders.join(', ')}`, true);
+            return;
+        }
+        
+        // データ行をパース
+        const data = [];
+        const errors = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            const values = line.split(',').map(v => v.trim());
+            
+            if (values.length !== headers.length) {
+                errors.push(`${i + 1}行目: 列数が一致しません`);
+                continue;
+            }
+            
+            const row = {};
+            headers.forEach((header, index) => {
+                row[header] = values[index];
+            });
+            
+            // バリデーション
+            const zekken = parseInt(row['ゼッケン番号']);
+            const name = row['名前'];
+            
+            if (!zekken || isNaN(zekken) || zekken <= 0) {
+                errors.push(`${i + 1}行目: ゼッケン番号が不正です (${row['ゼッケン番号']})`);
+                continue;
+            }
+            
+            if (!name || name.trim() === '') {
+                errors.push(`${i + 1}行目: 名前が空です`);
+                continue;
+            }
+            
+            // 重複チェック
+            const isDuplicate = data.some(d => d.zekken === zekken);
+            if (isDuplicate) {
+                errors.push(`${i + 1}行目: ゼッケン番号 ${zekken} が重複しています`);
+                continue;
+            }
+            
+            // 既存選手との重複チェック
+            const existingPlayer = ALL_PLAYERS.find(p => p.zekken === zekken);
+            if (existingPlayer) {
+                errors.push(`${i + 1}行目: ゼッケン番号 ${zekken} は既に登録されています (${existingPlayer.name})`);
+                continue;
+            }
+            
+            data.push({
+                zekken: zekken,
+                name: name,
+                reading: row['読み仮名'] || '',
+                club: row['所属'] || ''
+            });
+        }
+        
+        console.log('✅ パース完了:', data.length, '件');
+        console.log('❌ エラー:', errors.length, '件');
+        
+        if (errors.length > 0) {
+            console.error('エラー詳細:', errors);
+            showToast(`⚠️ ${errors.length}件のエラーがあります`, true);
+            
+            // エラー詳細を表示
+            const errorMsg = errors.slice(0, 5).join('\n');
+            alert(`CSVインポートエラー:\n\n${errorMsg}${errors.length > 5 ? `\n\n...他${errors.length - 5}件` : ''}`);
+        }
+        
+        if (data.length === 0) {
+            showToast('❌ インポート可能なデータがありません', true);
+            return;
+        }
+        
+        // データを保存してプレビュー表示
+        CSV_DATA = data;
+        showCSVPreview(data, errors);
+        
+    } catch (error) {
+        console.error('❌ CSVパースエラー:', error);
+        showToast('❌ CSVファイルの読み込みに失敗しました', true);
+    }
+}
+
+// CSVプレビューを表示
+function showCSVPreview(data, errors) {
+    const preview = document.getElementById('csv-preview');
+    const content = document.getElementById('csv-preview-content');
+    
+    let html = `
+        <div style="margin-bottom: 15px;">
+            <strong style="color: #51cf66;">✅ インポート可能: ${data.length}件</strong>
+            ${errors.length > 0 ? `<br><strong style="color: #ff6b6b;">❌ エラー: ${errors.length}件</strong>` : ''}
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+                <tr style="background: rgba(255, 255, 255, 0.1);">
+                    <th style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">ゼッケン</th>
+                    <th style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">名前</th>
+                    <th style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">読み仮名</th>
+                    <th style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">所属</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    data.forEach(row => {
+        html += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); text-align: center;">${row.zekken}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">${row.name}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">${row.reading || '-'}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">${row.club || '-'}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    content.innerHTML = html;
+    preview.style.display = 'block';
+    
+    console.log('👁️ プレビュー表示');
+}
+
+// CSVインポート実行
+window.importCSV = async function() {
+    if (CSV_DATA.length === 0) {
+        showToast('❌ インポートするデータがありません', true);
+        return;
+    }
+    
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    console.log('🚀 CSVインポート開始:', CSV_DATA.length, '件');
+    
+    try {
+        // 一括登録
+        const players = CSV_DATA.map(row => ({
+            tournament_id: CURRENT_TOURNAMENT_ID,
+            zekken: row.zekken,
+            name: row.name,
+            reading: row.reading,
+            club: row.club
+        }));
+        
+        const { data, error } = await client
+            .from('players')
+            .insert(players)
+            .select();
+        
+        if (error) {
+            console.error('❌ インポートエラー:', error);
+            showToast(`❌ インポートに失敗しました: ${error.message}`, true);
+            return;
+        }
+        
+        console.log('✅ インポート成功:', data.length, '件');
+        showToast(`✅ ${data.length}件の選手を登録しました！`);
+        
+        // リセット
+        CSV_DATA = [];
+        document.getElementById('csv-preview').style.display = 'none';
+        document.getElementById('csv-file-input').value = '';
+        
+        // 選手データを再読み込み
+        await loadPlayers();
+        await loadPlayerList();
+        
+    } catch (error) {
+        console.error('❌ インポート例外:', error);
+        showToast('❌ インポートに失敗しました', true);
+    }
+}
+
+// CSVインポートをキャンセル
+window.cancelCSVImport = function() {
+    CSV_DATA = [];
+    document.getElementById('csv-preview').style.display = 'none';
+    document.getElementById('csv-file-input').value = '';
+    showToast('インポートをキャンセルしました');
+}
+
 window.deletePlayer = async function(zekken) {
     if (!confirm(`${zekken}番を削除しますか？`)) return;
     
