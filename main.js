@@ -140,9 +140,13 @@ window.switchTab = function(tabName) {
     } else if (tabName === 'settings') {
         document.getElementById('settings-view').classList.add('active');
         if (AUTH_LEVEL === 2) {
+            // 管理者のみルール設定を表示
+            document.getElementById('rule-settings-card').style.display = 'block';
+            loadTournamentSettings();
             loadPlayers();
             loadPlayerList();
         } else {
+            document.getElementById('rule-settings-card').style.display = 'none';
             showToast('管理者権限が必要です', true);
         }
     }
@@ -532,6 +536,80 @@ window.deletePlayer = async function(zekken) {
     showToast('削除しました');
     await loadPlayers();
     await loadPlayerList();
+}
+
+// ===================================
+// 大会ルール設定
+// ===================================
+
+// 設定を読み込み
+async function loadTournamentSettings() {
+    console.log('⚙️ 大会設定読み込み開始');
+    
+    if (!CONFIG || !CONFIG.id) {
+        console.error('❌ CONFIG が存在しません');
+        return;
+    }
+    
+    // フォームに現在の設定値を反映
+    document.getElementById('rule-type').value = CONFIG.rule_type || '長寸';
+    document.getElementById('limit-count').value = CONFIG.limit_count || 0;
+    document.getElementById('sort1').value = CONFIG.sort1 || 'max_len';
+    document.getElementById('sort2').value = CONFIG.sort2 || 'limit_weight';
+    document.getElementById('sort3').value = CONFIG.sort3 || 'count';
+    
+    console.log('✅ 大会設定読み込み完了:', CONFIG);
+}
+
+// 設定を保存
+window.updateTournamentSettings = async function() {
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    const ruleType = document.getElementById('rule-type').value;
+    const limitCount = parseInt(document.getElementById('limit-count').value) || 0;
+    const sort1 = document.getElementById('sort1').value;
+    const sort2 = document.getElementById('sort2').value;
+    const sort3 = document.getElementById('sort3').value;
+    
+    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3 });
+    
+    const { error } = await client
+        .from('tournaments')
+        .update({
+            rule_type: ruleType,
+            limit_count: limitCount,
+            sort1: sort1,
+            sort2: sort2,
+            sort3: sort3
+        })
+        .eq('id', CURRENT_TOURNAMENT_ID);
+    
+    if (error) {
+        console.error('❌ 設定保存エラー:', error);
+        showToast('設定の保存に失敗しました', true);
+        return;
+    }
+    
+    // CONFIGを更新
+    CONFIG.rule_type = ruleType;
+    CONFIG.limit_count = limitCount;
+    CONFIG.sort1 = sort1;
+    CONFIG.sort2 = sort2;
+    CONFIG.sort3 = sort3;
+    
+    showToast('✅ 設定を保存しました');
+    
+    // 大会情報表示を更新
+    const limitText = limitCount > 0 ? `リミット${limitCount}匹` : '総力戦';
+    document.getElementById('tournament-info').textContent = `${ruleType}ルール / ${limitText}`;
+    
+    // ランキングを再計算
+    await loadRanking();
+    
+    console.log('✅ 設定保存完了');
 }
 
 // ===================================
