@@ -231,7 +231,7 @@
             margin-bottom: 30px;
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-EcY7Go96.js"></script>
+  <script type="module" crossorigin src="/assets/main-DJ27gIMv.js"></script>
 </head>
 <body>
     <!-- トップページ -->
@@ -309,9 +309,22 @@
 
             <!-- 順位表 -->
             <div id="ranking-view" class="view active">
+                <!-- 大物賞 -->
+                <div class="card">
+                    <h2>🐟 大物賞</h2>
+                    <div id="biggest-fish-list"></div>
+                </div>
+                
+                <!-- 最小寸賞 -->
+                <div class="card">
+                    <h2>🎣 最小寸賞</h2>
+                    <div id="smallest-fish-list"></div>
+                </div>
+                
+                <!-- 大会順位 -->
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="margin: 0;">🏆 現在の順位</h2>
+                        <h2 style="margin: 0;">🏆 大会順位</h2>
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
                                 <input type="checkbox" id="realtime-toggle" checked onchange="toggleRealtimeUpdate()">
@@ -323,6 +336,9 @@
                         </div>
                     </div>
                     <div id="ranking-list"></div>
+                    <button class="btn btn-primary" id="show-more-btn" onclick="showMoreRankings()" style="display: none; width: 100%; margin-top: 15px;">
+                        続きを見る
+                    </button>
                 </div>
             </div>
 

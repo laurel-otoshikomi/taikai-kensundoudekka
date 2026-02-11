@@ -18,6 +18,8 @@ let ALL_PLAYERS = [];
 let ALL_HISTORY = [];
 let REALTIME_ENABLED = true; // リアルタイム更新フラグ
 let REALTIME_SUBSCRIPTION = null; // Supabaseリアルタイム購読
+let RANKING_DISPLAY_COUNT = 10; // 順位表示件数（初期: 10位まで）
+let FULL_RANKING = []; // 全ランキングデータ
 
 console.log('🎣 システム起動');
 
@@ -541,6 +543,8 @@ async function loadRanking() {
     
     if (catches.length === 0) {
         document.getElementById('ranking-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
+        document.getElementById('biggest-fish-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
+        document.getElementById('smallest-fish-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
         return;
     }
     
@@ -557,11 +561,15 @@ async function loadRanking() {
             stats[c.zekken] = {
                 zekken: c.zekken,
                 lengths: [],
-                weights: []
+                weights: [],
+                min_len: c.length,
+                max_len: c.length
             };
         }
         stats[c.zekken].lengths.push(c.length);
         stats[c.zekken].weights.push(c.weight || 0);
+        stats[c.zekken].min_len = Math.min(stats[c.zekken].min_len, c.length);
+        stats[c.zekken].max_len = Math.max(stats[c.zekken].max_len, c.length);
     });
     
     // ランキング配列に変換
@@ -583,9 +591,10 @@ async function loadRanking() {
         return {
             zekken: s.zekken,
             count: s.lengths.length,
-            max_len: Math.max(...s.lengths),
+            max_len: s.max_len,
+            min_len: s.min_len,
             max_weight: Math.max(...s.weights),
-            one_max_len: Math.max(...s.lengths),
+            one_max_len: s.max_len,
             one_max_weight: Math.max(...s.weights),
             total_weight: s.weights.reduce((sum, w) => sum + w, 0),
             total_count: s.lengths.length,
@@ -612,11 +621,113 @@ async function loadRanking() {
         return 0;
     });
     
+    // グローバルに保存
+    FULL_RANKING = ranking;
+    
     console.log('✅ ランキング計算完了:', ranking.length, '人');
     
-    // 表示
+    // 大物賞を表示（1匹最大長寸順位、同人物除外、3位まで）
+    renderBiggestFish(ranking, playerMap);
+    
+    // 最小寸賞を表示（1匹最小長寸順位、同人物除外、3位まで）
+    renderSmallestFish(ranking, playerMap);
+    
+    // 大会順位を表示（初期10位まで）
+    renderMainRanking(ranking, playerMap);
+}
+
+// 大物賞を表示
+function renderBiggestFish(ranking, playerMap) {
+    const biggestRanking = [...ranking].sort((a, b) => b.max_len - a.max_len);
+    const displayedZekkens = new Set();
+    const top3 = [];
+    
+    for (const r of biggestRanking) {
+        if (!displayedZekkens.has(r.zekken)) {
+            top3.push(r);
+            displayedZekkens.add(r.zekken);
+            if (top3.length === 3) break;
+        }
+    }
+    
+    const container = document.getElementById('biggest-fish-list');
+    container.innerHTML = top3.map((r, index) => {
+        const player = playerMap[r.zekken] || {};
+        const playerName = player.name || '未登録';
+        const playerClub = player.club || '';
+        
+        return `
+            <div class="ranking-item ${index === 0 ? 'top3' : ''}">
+                <div class="ranking-header">
+                    <div style="font-size: 24px; font-weight: bold;">${index + 1}位</div>
+                    <div>
+                        <div style="font-size: 20px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8;">${playerClub}</div>` : ''}
+                    </div>
+                </div>
+                <div class="ranking-stats">
+                    <div class="stat">
+                        <div class="stat-label">最大長寸</div>
+                        <div class="stat-value" style="color: #FFD700;">${r.max_len.toFixed(1)}cm</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 最小寸賞を表示
+function renderSmallestFish(ranking, playerMap) {
+    const smallestRanking = [...ranking].sort((a, b) => a.min_len - b.min_len);
+    const displayedZekkens = new Set();
+    const top3 = [];
+    
+    for (const r of smallestRanking) {
+        if (!displayedZekkens.has(r.zekken)) {
+            top3.push(r);
+            displayedZekkens.add(r.zekken);
+            if (top3.length === 3) break;
+        }
+    }
+    
+    const container = document.getElementById('smallest-fish-list');
+    container.innerHTML = top3.map((r, index) => {
+        const player = playerMap[r.zekken] || {};
+        const playerName = player.name || '未登録';
+        const playerClub = player.club || '';
+        
+        return `
+            <div class="ranking-item ${index === 0 ? 'top3' : ''}">
+                <div class="ranking-header">
+                    <div style="font-size: 24px; font-weight: bold;">${index + 1}位</div>
+                    <div>
+                        <div style="font-size: 20px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8;">${playerClub}</div>` : ''}
+                    </div>
+                </div>
+                <div class="ranking-stats">
+                    <div class="stat">
+                        <div class="stat-label">最小長寸</div>
+                        <div class="stat-value" style="color: #4CAF50;">${r.min_len.toFixed(1)}cm</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 大会順位を表示
+function renderMainRanking(ranking, playerMap) {
+    const ruleType = CONFIG.rule_type || 'max_len';
+    const sort1 = CONFIG.sort1 || null;
+    const sort2 = CONFIG.sort2 || null;
+    
+    // 初期表示件数
+    const displayCount = Math.min(RANKING_DISPLAY_COUNT, ranking.length);
+    const displayRanking = ranking.slice(0, displayCount);
+    
     const container = document.getElementById('ranking-list');
-    container.innerHTML = ranking.map((r, index) => {
+    container.innerHTML = displayRanking.map((r, index) => {
         const isTop3 = index < 3;
         const player = playerMap[r.zekken] || {};
         const playerName = player.name || '未登録';
@@ -657,6 +768,27 @@ async function loadRanking() {
             </div>
         `;
     }).join('');
+    
+    // 「続きを見る」ボタンの表示/非表示
+    const showMoreBtn = document.getElementById('show-more-btn');
+    if (ranking.length > RANKING_DISPLAY_COUNT) {
+        showMoreBtn.style.display = 'block';
+    } else {
+        showMoreBtn.style.display = 'none';
+    }
+}
+
+// 続きを見る
+window.showMoreRankings = function() {
+    RANKING_DISPLAY_COUNT += 10;
+    
+    const playerMap = {};
+    ALL_PLAYERS.forEach(p => {
+        playerMap[p.zekken] = p;
+    });
+    
+    renderMainRanking(FULL_RANKING, playerMap);
+    showToast('10件追加表示しました');
 }
 
 // 値のフォーマット
