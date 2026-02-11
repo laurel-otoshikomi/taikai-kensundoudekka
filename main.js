@@ -390,6 +390,13 @@ async function loadPlayers() {
 // 選手検索機能
 // ===================================
 
+// 全角英数字を半角に変換
+function toHalfWidth(str) {
+    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+    });
+}
+
 // ひらがな⇔カタカナ変換ヘルパー関数
 function toHiragana(str) {
     return str.replace(/[\u30A1-\u30F6]/g, function(match) {
@@ -407,10 +414,11 @@ function toKatakana(str) {
 
 // テキストの正規化（ひらがな・カタカナの両方で検索できるように）
 function normalizeText(text) {
-    if (!text) return '';
+    if (!text) return { original: '', hiragana: '', katakana: '', halfWidth: '' };
     const hiragana = toHiragana(text);
     const katakana = toKatakana(text);
-    return { original: text, hiragana, katakana };
+    const halfWidth = toHalfWidth(text);
+    return { original: text, hiragana, katakana, halfWidth };
 }
 
 window.searchPlayer = function() {
@@ -440,12 +448,12 @@ window.searchPlayer = function() {
         return;
     }
     
-    // 検索実行（ひらがな⇔カタカナ変換対応）
+    // 検索実行（ひらがな⇔カタカナ変換、全角→半角変換対応）
     const normalizedQuery = normalizeText(searchQuery);
     
     const filteredPlayers = ALL_PLAYERS.filter(player => {
-        // ゼッケン番号で検索（完全一致）
-        if (player.zekken.toString() === searchQuery) {
+        // ゼッケン番号で検索（完全一致、全角→半角対応）
+        if (player.zekken.toString() === searchQuery || player.zekken.toString() === normalizedQuery.halfWidth) {
             console.log('✅ ゼッケン一致:', player.zekken);
             return true;
         }
@@ -461,14 +469,20 @@ window.searchPlayer = function() {
             }
             
             // ひらがな変換して検索
-            if (normalizedName.hiragana.includes(normalizedQuery.hiragana)) {
+            if (normalizedName.hiragana.includes(normalizedQuery.hiragana) && normalizedQuery.hiragana !== '') {
                 console.log('✅ 名前一致（ひらがな）:', player.name, '検索:', searchQuery);
                 return true;
             }
             
             // カタカナ変換して検索
-            if (normalizedName.katakana.includes(normalizedQuery.katakana)) {
+            if (normalizedName.katakana.includes(normalizedQuery.katakana) && normalizedQuery.katakana !== '') {
                 console.log('✅ 名前一致（カタカナ）:', player.name, '検索:', searchQuery);
+                return true;
+            }
+            
+            // 半角変換して検索
+            if (normalizedName.halfWidth.includes(normalizedQuery.halfWidth) && normalizedQuery.halfWidth !== '') {
+                console.log('✅ 名前一致（半角）:', player.name, '検索:', searchQuery);
                 return true;
             }
             
@@ -492,14 +506,20 @@ window.searchPlayer = function() {
             }
             
             // ひらがな変換して検索
-            if (normalizedClub.hiragana.includes(normalizedQuery.hiragana)) {
+            if (normalizedClub.hiragana.includes(normalizedQuery.hiragana) && normalizedQuery.hiragana !== '') {
                 console.log('✅ 所属一致（ひらがな）:', player.club, '検索:', searchQuery);
                 return true;
             }
             
             // カタカナ変換して検索
-            if (normalizedClub.katakana.includes(normalizedQuery.katakana)) {
+            if (normalizedClub.katakana.includes(normalizedQuery.katakana) && normalizedQuery.katakana !== '') {
                 console.log('✅ 所属一致（カタカナ）:', player.club, '検索:', searchQuery);
+                return true;
+            }
+            
+            // 半角変換して検索
+            if (normalizedClub.halfWidth.includes(normalizedQuery.halfWidth) && normalizedQuery.halfWidth !== '') {
+                console.log('✅ 所属一致（半角）:', player.club, '検索:', searchQuery);
                 return true;
             }
             
