@@ -194,6 +194,18 @@ async function openTournament(tournamentId) {
     // ランキング読み込み
     await loadRanking();
     
+    // QRコードを生成
+    initQRCode();
+    
+    // 大会管理カードを表示（管理者のみ）
+    if (AUTH_LEVEL === 2) {
+        document.getElementById('tournament-management-card').style.display = 'block';
+        updateTournamentStatusDisplay();
+    }
+    
+    // 大会終了チェック
+    updateInputFormVisibility();
+    
     // リアルタイム監視
     setupRealtimeSubscription();
 }
@@ -316,6 +328,12 @@ window.login = function() {
     
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('input-form').style.display = 'block';
+    
+    // 管理者の場合、大会管理カードを表示
+    if (AUTH_LEVEL === 2) {
+        document.getElementById('tournament-management-card').style.display = 'block';
+        updateTournamentStatusDisplay();
+    }
     
     loadPlayers();
     loadHistory();
@@ -2311,3 +2329,212 @@ window.cancelConfirm = function() {
 }
 
 console.log('✅ システム準備完了');
+// ===================================
+// QRコード表示
+// ===================================
+
+function initQRCode() {
+    const qrcodeContainer = document.getElementById('qrcode');
+    qrcodeContainer.innerHTML = ''; // クリア
+    
+    const currentURL = window.location.origin + window.location.pathname + '?id=' + CURRENT_TOURNAMENT_ID;
+    document.getElementById('tournament-url').textContent = currentURL;
+    
+    new QRCode(qrcodeContainer, {
+        text: currentURL,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+    
+    console.log('✅ QRコード生成完了');
+}
+
+window.copyTournamentURL = function() {
+    const url = document.getElementById('tournament-url').textContent;
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('✅ URLをコピーしました');
+    }).catch(err => {
+        console.error('コピーエラー:', err);
+        showToast('❌ コピーに失敗しました', true);
+    });
+}
+
+// ===================================
+// 大会終了/再開
+// ===================================
+
+window.toggleTournamentStatus = async function() {
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    const isEnded = CONFIG.is_ended || false;
+    const newStatus = !isEnded;
+    const action = newStatus ? '終了' : '再開';
+    
+    if (!confirm(`大会を${action}しますか？\n${newStatus ? '終了すると釣果の入力ができなくなります。' : '再開すると釣果の入力が可能になります。'}`)) {
+        return;
+    }
+    
+    const { error } = await client
+        .from('tournaments')
+        .update({ is_ended: newStatus })
+        .eq('id', CURRENT_TOURNAMENT_ID);
+    
+    if (error) {
+        console.error('❌ 更新エラー:', error);
+        showToast(`❌ ${action}に失敗しました`, true);
+        return;
+    }
+    
+    CONFIG.is_ended = newStatus;
+    updateTournamentStatusDisplay();
+    showToast(`✅ 大会を${action}しました`);
+    
+    // 釣果入力フォームの表示を更新
+    updateInputFormVisibility();
+}
+
+function updateTournamentStatusDisplay() {
+    const isEnded = CONFIG.is_ended || false;
+    const statusDisplay = document.getElementById('tournament-status-display');
+    const toggleBtn = document.getElementById('toggle-tournament-btn');
+    
+    if (isEnded) {
+        statusDisplay.innerHTML = '🔴 終了';
+        statusDisplay.style.background = 'rgba(255, 107, 107, 0.2)';
+        statusDisplay.style.borderColor = '#ff6b6b';
+        statusDisplay.style.color = '#ff6b6b';
+        toggleBtn.innerHTML = '▶️ 大会を再開';
+        toggleBtn.style.background = 'linear-gradient(135deg, #51cf66 0%, #37b24d 100%)';
+    } else {
+        statusDisplay.innerHTML = '🟢 進行中';
+        statusDisplay.style.background = 'rgba(81, 207, 102, 0.2)';
+        statusDisplay.style.borderColor = '#51cf66';
+        statusDisplay.style.color = '#51cf66';
+        toggleBtn.innerHTML = '⏸️ 大会を終了';
+        toggleBtn.style.background = 'linear-gradient(135deg, #ffd93d 0%, #ff6b6b 100%)';
+    }
+}
+
+function updateInputFormVisibility() {
+    const isEnded = CONFIG.is_ended || false;
+    const inputForm = document.getElementById('input-form');
+    
+    if (isEnded && AUTH_LEVEL !== 2) {
+        // 大会終了時、管理者以外は入力フォームを非表示
+        inputForm.style.display = 'none';
+        showToast('⚠️ 大会は終了しました', true);
+    }
+}
+
+// ===================================
+// 大会削除
+// ===================================
+
+window.deleteTournament = async function() {
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    const confirmText = prompt('大会を完全に削除します。\nこの操作は取り消せません。\n\n削除する場合は、大会ID「' + CURRENT_TOURNAMENT_ID + '」を入力してください:');
+    
+    if (confirmText !== CURRENT_TOURNAMENT_ID) {
+        if (confirmText !== null) {
+            showToast('❌ 大会IDが一致しません', true);
+        }
+        return;
+    }
+    
+    try {
+        // 釣果を削除
+        const { error: catchesError } = await client
+            .from('catches')
+            .delete()
+            .eq('tournament_id', CURRENT_TOURNAMENT_ID);
+        
+        if (catchesError) throw catchesError;
+        
+        // 選手を削除
+        const { error: playersError } = await client
+            .from('players')
+            .delete()
+            .eq('tournament_id', CURRENT_TOURNAMENT_ID);
+        
+        if (playersError) throw playersError;
+        
+        // 大会を削除
+        const { error: tournamentError } = await client
+            .from('tournaments')
+            .delete()
+            .eq('id', CURRENT_TOURNAMENT_ID);
+        
+        if (tournamentError) throw tournamentError;
+        
+        showToast('✅ 大会を削除しました');
+        
+        // トップページにリダイレクト
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ 削除エラー:', error);
+        showToast('❌ 削除に失敗しました', true);
+    }
+}
+
+// ===================================
+// 結果エクスポート（CSV）
+// ===================================
+
+window.exportResults = async function() {
+    if (AUTH_LEVEL !== 2) {
+        showToast('管理者権限が必要です', true);
+        return;
+    }
+    
+    try {
+        // 順位表データを取得
+        const ranking = FULL_RANKING || [];
+        const players = ALL_PLAYERS || [];
+        
+        if (ranking.length === 0) {
+            showToast('❌ エクスポートするデータがありません', true);
+            return;
+        }
+        
+        // CSVヘッダー
+        let csv = '順位,ゼッケン番号,名前,所属,リミット合計長寸,1匹最大長寸,1匹最大重量,総枚数,総重量\n';
+        
+        // データ行
+        ranking.forEach((r, index) => {
+            const player = players.find(p => p.zekken === r.zekken) || {};
+            csv += `${index + 1},${r.zekken},"${player.name || '未登録'}","${player.club || ''}",${r.limit_total_len || 0},${r.one_max_len || 0},${r.one_max_weight || 0},${r.total_count || 0},${r.total_weight || 0}\n`;
+        });
+        
+        // ファイル名を生成
+        const tournamentName = CONFIG.name || 'tournament';
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `${tournamentName}_result_${date}.csv`;
+        
+        // BOM付きUTF-8でダウンロード
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        
+        showToast('✅ CSVファイルをダウンロードしました');
+        
+    } catch (error) {
+        console.error('❌ エクスポートエラー:', error);
+        showToast('❌ エクスポートに失敗しました', true);
+    }
+}

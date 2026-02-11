@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>釣果管理システム</title>
+    <!-- QRCode Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -721,6 +723,56 @@
                     </div>
 
                     <button class="btn btn-primary" onclick="updateTournamentSettings()">設定を保存</button>
+                </div>
+
+                <!-- QRコード表示 -->
+                <div class="card">
+                    <h2>📱 大会URL QRコード</h2>
+                    <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">
+                        このQRコードを参加者に共有すると、簡単に大会にアクセスできます
+                    </p>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin-bottom: 15px;">
+                        <div id="qrcode" style="display: flex; justify-content: center;"></div>
+                    </div>
+                    
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong>大会URL:</strong>
+                        <div id="tournament-url" style="margin-top: 8px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 13px;"></div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="copyTournamentURL()" style="width: 100%;">📋 URLをコピー</button>
+                </div>
+
+                <!-- 大会管理 -->
+                <div class="card" id="tournament-management-card" style="display: none;">
+                    <h2>🎮 大会管理</h2>
+                    
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px; font-size: 18px;">大会状態</h3>
+                        <div id="tournament-status-display" style="padding: 15px; background: rgba(81, 207, 102, 0.2); border: 2px solid #51cf66; border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold; color: #51cf66;">
+                            🟢 進行中
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button id="toggle-tournament-btn" class="btn" onclick="toggleTournamentStatus()" style="flex: 1; padding: 15px; font-size: 16px; background: linear-gradient(135deg, #ffd93d 0%, #ff6b6b 100%); border: none;">
+                            ⏸️ 大会を終了
+                        </button>
+                        <button class="btn" onclick="exportResults()" style="flex: 1; padding: 15px; font-size: 16px; background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%); border: none;">
+                            📊 結果をエクスポート
+                        </button>
+                    </div>
+                    
+                    <div style="background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px; border: 2px solid rgba(255, 107, 107, 0.5);">
+                        <h3 style="margin-bottom: 10px; color: #ff6b6b;">⚠️ 危険な操作</h3>
+                        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">
+                            この操作は取り消せません。慎重に実行してください。
+                        </p>
+                        <button class="btn btn-danger" onclick="deleteTournament()" style="width: 100%; padding: 15px; font-size: 16px;">
+                            🗑️ 大会を削除
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 選手管理 -->
