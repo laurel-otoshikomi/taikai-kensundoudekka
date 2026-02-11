@@ -2972,3 +2972,282 @@ async function getSmallestCatch() {
     const results = await getSmallestCatches(1);
     return results.length > 0 ? results[0] : null;
 }
+
+// ===================================
+// 複数大会管理
+// ===================================
+
+// マイ大会一覧を表示
+window.showMyTournaments = function() {
+    document.getElementById('top-page').style.display = 'none';
+    document.getElementById('tournament-list-page').style.display = 'block';
+    loadMyTournaments();
+}
+
+// トップに戻る
+window.backToTop = function() {
+    document.getElementById('tournament-list-page').style.display = 'none';
+    document.getElementById('top-page').style.display = 'block';
+}
+
+// マイ大会を読み込み
+async function loadMyTournaments() {
+    const myTournaments = JSON.parse(localStorage.getItem('myTournaments') || '[]');
+    const container = document.getElementById('my-tournaments-list');
+    
+    if (myTournaments.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #ccc;">
+                <p style="font-size: 18px; margin-bottom: 10px;">📭 まだ大会がありません</p>
+                <p style="font-size: 14px;">「➕ 新規作成」から大会を作成してください</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // 大会データを取得
+    const tournaments = [];
+    for (const tournamentId of myTournaments) {
+        const { data, error } = await client
+            .from('tournaments')
+            .select('*')
+            .eq('id', tournamentId)
+            .single();
+        
+        if (!error && data) {
+            // 選手数を取得
+            const { data: players, error: playersError } = await client
+                .from('players')
+                .select('zekken', { count: 'exact' })
+                .eq('tournament_id', tournamentId);
+            
+            // 釣果数を取得
+            const { data: catches, error: catchesError } = await client
+                .from('catches')
+                .select('id', { count: 'exact' })
+                .eq('tournament_id', tournamentId);
+            
+            tournaments.push({
+                ...data,
+                playerCount: players ? players.length : 0,
+                catchCount: catches ? catches.length : 0
+            });
+        }
+    }
+    
+    // 作成日時の新しい順にソート
+    tournaments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    container.innerHTML = tournaments.map(t => {
+        const isEnded = t.is_ended || false;
+        const statusBadge = isEnded 
+            ? '<span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 5px 10px; border-radius: 5px; font-size: 12px;">🔴 終了</span>'
+            : '<span style="background: rgba(81,207,102,0.2); color: #51cf66; padding: 5px 10px; border-radius: 5px; font-size: 12px;">🟢 進行中</span>';
+        
+        const createdDate = new Date(t.created_at).toLocaleDateString('ja-JP');
+        
+        return `
+            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s;" onclick="enterTournamentById('${t.id}')" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 18px; margin-bottom: 5px;">${t.name}</h3>
+                        <p style="font-size: 13px; color: #ccc;">ID: ${t.id}</p>
+                    </div>
+                    ${statusBadge}
+                </div>
+                <div style="display: flex; gap: 20px; font-size: 14px; color: #ccc;">
+                    <span>📅 ${createdDate}</span>
+                    <span>👥 ${t.playerCount}名</span>
+                    <span>🐟 ${t.catchCount}匹</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 大会IDで入室
+window.enterTournamentById = function(tournamentId) {
+    document.getElementById('tournament-id-input').value = tournamentId;
+    enterTournament();
+}
+
+// 新規大会作成（一覧から）
+window.createNewTournament = function() {
+    document.getElementById('tournament-list-page').style.display = 'none';
+    document.getElementById('top-page').style.display = 'block';
+    // 新規作成セクションにフォーカス
+    document.getElementById('new-tournament-id').focus();
+}
+
+// マイ大会リストに追加
+function addToMyTournaments(tournamentId) {
+    const myTournaments = JSON.parse(localStorage.getItem('myTournaments') || '[]');
+    if (!myTournaments.includes(tournamentId)) {
+        myTournaments.push(tournamentId);
+        localStorage.setItem('myTournaments', JSON.stringify(myTournaments));
+    }
+}
+
+// ===================================
+// テーマカスタマイズ
+// ===================================
+
+// テーマを読み込み
+function loadTheme() {
+    const theme = JSON.parse(localStorage.getItem('customTheme') || '{}');
+    
+    if (theme.primaryColor) {
+        document.documentElement.style.setProperty('--primary-color', theme.primaryColor);
+        document.getElementById('primary-color').value = theme.primaryColor;
+        document.getElementById('primary-color-text').value = theme.primaryColor;
+    }
+    
+    if (theme.secondaryColor) {
+        document.documentElement.style.setProperty('--secondary-color', theme.secondaryColor);
+        document.getElementById('secondary-color').value = theme.secondaryColor;
+        document.getElementById('secondary-color-text').value = theme.secondaryColor;
+    }
+    
+    if (theme.logoUrl) {
+        const logos = document.querySelectorAll('.logo');
+        logos.forEach(logo => {
+            logo.src = theme.logoUrl;
+            logo.classList.add('visible');
+        });
+        
+        document.getElementById('logo-preview').style.display = 'block';
+        document.getElementById('logo-preview-img').src = theme.logoUrl;
+    }
+}
+
+// テーマを保存
+window.saveTheme = function() {
+    const primaryColor = document.getElementById('primary-color').value;
+    const secondaryColor = document.getElementById('secondary-color').value;
+    const logoUrl = document.getElementById('logo-preview-img').src;
+    
+    const theme = {
+        primaryColor,
+        secondaryColor,
+        logoUrl: logoUrl && !logoUrl.includes('blob:') ? logoUrl : localStorage.getItem('customLogo') || ''
+    };
+    
+    localStorage.setItem('customTheme', JSON.stringify(theme));
+    
+    // CSS変数を更新
+    document.documentElement.style.setProperty('--primary-color', primaryColor);
+    document.documentElement.style.setProperty('--secondary-color', secondaryColor);
+    
+    showToast('✅ テーマを保存しました');
+}
+
+// テーマをリセット
+window.resetTheme = function() {
+    if (!confirm('テーマをデフォルトに戻しますか？')) return;
+    
+    localStorage.removeItem('customTheme');
+    localStorage.removeItem('customLogo');
+    
+    document.documentElement.style.setProperty('--primary-color', '#667eea');
+    document.documentElement.style.setProperty('--secondary-color', '#764ba2');
+    
+    document.getElementById('primary-color').value = '#667eea';
+    document.getElementById('primary-color-text').value = '#667eea';
+    document.getElementById('secondary-color').value = '#764ba2';
+    document.getElementById('secondary-color-text').value = '#764ba2';
+    
+    const logos = document.querySelectorAll('.logo');
+    logos.forEach(logo => {
+        logo.src = '';
+        logo.classList.remove('visible');
+    });
+    
+    document.getElementById('logo-preview').style.display = 'none';
+    
+    showToast('✅ テーマをリセットしました');
+}
+
+// ロゴアップロード
+window.handleLogoUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        showToast('❌ 画像ファイルを選択してください', true);
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        localStorage.setItem('customLogo', dataUrl);
+        
+        const logos = document.querySelectorAll('.logo');
+        logos.forEach(logo => {
+            logo.src = dataUrl;
+            logo.classList.add('visible');
+        });
+        
+        document.getElementById('logo-preview').style.display = 'block';
+        document.getElementById('logo-preview-img').src = dataUrl;
+        
+        showToast('✅ ロゴをアップロードしました');
+    };
+    reader.readAsDataURL(file);
+}
+
+// ロゴを削除
+window.removeLogo = function() {
+    localStorage.removeItem('customLogo');
+    
+    const logos = document.querySelectorAll('.logo');
+    logos.forEach(logo => {
+        logo.src = '';
+        logo.classList.remove('visible');
+    });
+    
+    document.getElementById('logo-preview').style.display = 'none';
+    document.getElementById('logo-upload').value = '';
+    
+    showToast('✅ ロゴを削除しました');
+}
+
+// カラーピッカーとテキスト入力を同期
+document.addEventListener('DOMContentLoaded', function() {
+    const primaryColor = document.getElementById('primary-color');
+    const primaryColorText = document.getElementById('primary-color-text');
+    const secondaryColor = document.getElementById('secondary-color');
+    const secondaryColorText = document.getElementById('secondary-color-text');
+    
+    if (primaryColor && primaryColorText) {
+        primaryColor.addEventListener('input', function() {
+            primaryColorText.value = this.value;
+        });
+        primaryColorText.addEventListener('input', function() {
+            primaryColor.value = this.value;
+        });
+    }
+    
+    if (secondaryColor && secondaryColorText) {
+        secondaryColor.addEventListener('input', function() {
+            secondaryColorText.value = this.value;
+        });
+        secondaryColorText.addEventListener('input', function() {
+            secondaryColor.value = this.value;
+        });
+    }
+    
+    // テーマを読み込み
+    loadTheme();
+});
+
+// 大会作成時にマイ大会に追加
+const originalCreateTournament = window.createTournament;
+window.createTournament = async function() {
+    const result = await originalCreateTournament();
+    if (result !== false) {
+        const tournamentId = document.getElementById('new-tournament-id').value.trim();
+        addToMyTournaments(tournamentId);
+    }
+    return result;
+}
