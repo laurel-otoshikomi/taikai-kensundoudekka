@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データベーステスト</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        pre {
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .error {
+            color: #ff5555;
+        }
+        .success {
+            color: #50fa7b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 データベース診断ツール</h1>
+    
+    <div class="section">
+        <h2>1. Supabase接続テスト</h2>
+        <button onclick="testConnection()">接続テスト</button>
+        <pre id="connection-result">まだテストしていません</pre>
+    </div>
+
+    <div class="section">
+        <h2>2. テーブル一覧取得</h2>
+        <p>※ RLSポリシーで見えるテーブルのみ表示されます</p>
+        <button onclick="listTables()">テーブル確認</button>
+        <pre id="tables-result">まだテストしていません</pre>
+    </div>
+
+    <div class="section">
+        <h2>3. 大会データ確認</h2>
+        <input type="text" id="tournament-id" value="kanren" style="padding: 8px; border-radius: 5px; margin-right: 10px;">
+        <button onclick="checkTournament()">大会確認</button>
+        <pre id="tournament-result">まだテストしていません</pre>
+    </div>
+
+    <div class="section">
+        <h2>4. 選手データ確認</h2>
+        <button onclick="checkPlayers()">選手確認</button>
+        <pre id="players-result">まだテストしていません</pre>
+    </div>
+
+    <div class="section">
+        <h2>5. テスト選手を追加</h2>
+        <input type="number" id="test-zekken" value="999" placeholder="ゼッケン番号" style="padding: 8px; width: 150px; margin-right: 10px;">
+        <input type="text" id="test-name" value="テスト太郎" placeholder="名前" style="padding: 8px; width: 150px; margin-right: 10px;">
+        <button onclick="addTestPlayer()">追加テスト</button>
+        <pre id="add-result">まだテストしていません</pre>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+        const supabaseUrl = 'https://pajzsgbnoqdinvfmvlog.supabase.co';
+        const supabaseKey = 'sb_publishable_oP9HcAQrGbVNS7dHN4G8UQ_0r5gUTzD';
+        const client = createClient(supabaseUrl, supabaseKey);
+
+        window.client = client;
+
+        window.testConnection = async function() {
+            const result = document.getElementById('connection-result');
+            result.innerHTML = '接続中...';
+            
+            try {
+                // 簡単なクエリでテスト
+                const { data, error } = await client.from('tournaments').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    result.innerHTML = `<span class="error">❌ エラー:</span>\n${JSON.stringify(error, null, 2)}`;
+                } else {
+                    result.innerHTML = `<span class="success">✅ 接続成功！</span>\nSupabaseに正常に接続できました`;
+                }
+            } catch (err) {
+                result.innerHTML = `<span class="error">❌ 例外:</span>\n${err.message}`;
+            }
+        }
+
+        window.listTables = async function() {
+            const result = document.getElementById('tables-result');
+            result.innerHTML = 'テーブル確認中...';
+            
+            const tables = ['tournaments', 'players', 'catches'];
+            const results = [];
+
+            for (const table of tables) {
+                try {
+                    const { data, error } = await client.from(table).select('*').limit(1);
+                    
+                    if (error) {
+                        results.push(`❌ ${table}: ${error.message}`);
+                    } else {
+                        results.push(`✅ ${table}: アクセス可能`);
+                    }
+                } catch (err) {
+                    results.push(`❌ ${table}: ${err.message}`);
+                }
+            }
+
+            result.innerHTML = results.join('\n');
+        }
+
+        window.checkTournament = async function() {
+            const result = document.getElementById('tournament-result');
+            const tournamentId = document.getElementById('tournament-id').value;
+            
+            result.innerHTML = '確認中...';
+            
+            try {
+                const { data, error } = await client
+                    .from('tournaments')
+                    .select('*')
+                    .eq('id', tournamentId)
+                    .single();
+                
+                if (error) {
+                    result.innerHTML = `<span class="error">❌ エラー:</span>\n${JSON.stringify(error, null, 2)}`;
+                } else if (!data) {
+                    result.innerHTML = `<span class="error">❌ 大会が見つかりません</span>`;
+                } else {
+                    result.innerHTML = `<span class="success">✅ 大会が見つかりました:</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (err) {
+                result.innerHTML = `<span class="error">❌ 例外:</span>\n${err.message}`;
+            }
+        }
+
+        window.checkPlayers = async function() {
+            const result = document.getElementById('players-result');
+            const tournamentId = document.getElementById('tournament-id').value || 'kanren';
+            
+            result.innerHTML = '確認中...';
+            
+            try {
+                const { data, error } = await client
+                    .from('players')
+                    .select('*')
+                    .eq('tournament_id', tournamentId)
+                    .order('zekken');
+                
+                if (error) {
+                    result.innerHTML = `<span class="error">❌ エラー:</span>\n${JSON.stringify(error, null, 2)}`;
+                } else if (!data || data.length === 0) {
+                    result.innerHTML = `<span class="error">❌ 選手が登録されていません</span>`;
+                } else {
+                    result.innerHTML = `<span class="success">✅ 選手データ (${data.length}人):</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (err) {
+                result.innerHTML = `<span class="error">❌ 例外:</span>\n${err.message}`;
+            }
+        }
+
+        window.addTestPlayer = async function() {
+            const result = document.getElementById('add-result');
+            const tournamentId = document.getElementById('tournament-id').value || 'kanren';
+            const zekken = parseInt(document.getElementById('test-zekken').value);
+            const name = document.getElementById('test-name').value;
+            
+            result.innerHTML = '追加中...';
+            
+            try {
+                const { data, error } = await client
+                    .from('players')
+                    .insert({
+                        tournament_id: tournamentId,
+                        zekken: zekken,
+                        name: name,
+                        club: 'テストクラブ'
+                    })
+                    .select();
+                
+                if (error) {
+                    result.innerHTML = `<span class="error">❌ エラー:</span>\n${JSON.stringify(error, null, 2)}`;
+                } else {
+                    result.innerHTML = `<span class="success">✅ 追加成功:</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (err) {
+                result.innerHTML = `<span class="error">❌ 例外:</span>\n${err.message}`;
+            }
+        }
+
+        console.log('✅ 診断ツール準備完了');
+    </script>
+</body>
+</html>
