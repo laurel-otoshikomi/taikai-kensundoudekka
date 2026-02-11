@@ -550,6 +550,7 @@ window.editPlayer = async function(zekken) {
     }
     
     console.log('📝 更新データ:', { name: newName.trim(), club: newClub.trim() });
+    console.log('📝 更新条件:', { tournament_id: CURRENT_TOURNAMENT_ID, zekken: zekken });
     
     const { data, error } = await client
         .from('players')
@@ -563,7 +564,14 @@ window.editPlayer = async function(zekken) {
     
     if (error) {
         console.error('❌ 選手編集エラー:', error);
-        showToast('❌ 編集に失敗しました', true);
+        console.error('❌ エラー詳細:', JSON.stringify(error, null, 2));
+        showToast(`❌ 編集に失敗しました: ${error.message || error.code || '不明なエラー'}`, true);
+        return;
+    }
+    
+    if (!data || data.length === 0) {
+        console.error('❌ 更新対象が見つかりませんでした');
+        showToast('❌ 更新対象が見つかりませんでした', true);
         return;
     }
     
@@ -789,8 +797,9 @@ window.updateTournamentSettings = async function() {
     }
     
     console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3 });
+    console.log('💾 更新条件:', { id: CURRENT_TOURNAMENT_ID });
     
-    const { error } = await client
+    const { data, error } = await client
         .from('tournaments')
         .update({
             rule_type: ruleType,
@@ -799,13 +808,23 @@ window.updateTournamentSettings = async function() {
             sort2: sort2 || null,
             sort3: sort3 || null
         })
-        .eq('id', CURRENT_TOURNAMENT_ID);
+        .eq('id', CURRENT_TOURNAMENT_ID)
+        .select();
     
     if (error) {
         console.error('❌ 設定保存エラー:', error);
-        showToast('設定の保存に失敗しました', true);
+        console.error('❌ エラー詳細:', JSON.stringify(error, null, 2));
+        showToast(`❌ 設定の保存に失敗しました: ${error.message || error.code || '不明なエラー'}`, true);
         return;
     }
+    
+    if (!data || data.length === 0) {
+        console.error('❌ 更新対象が見つかりませんでした');
+        showToast('❌ 更新対象が見つかりませんでした', true);
+        return;
+    }
+    
+    console.log('✅ 更新後のデータ:', data);
     
     // CONFIGを更新
     CONFIG.rule_type = ruleType;
