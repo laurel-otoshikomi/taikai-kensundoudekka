@@ -387,6 +387,98 @@ async function loadPlayers() {
 }
 
 // ===================================
+// 選手検索機能
+// ===================================
+window.searchPlayer = function() {
+    const searchInput = document.getElementById('player-search');
+    const clearBtn = document.getElementById('clear-search-btn');
+    const resultCount = document.getElementById('search-result-count');
+    const select = document.getElementById('player-select');
+    
+    const searchQuery = searchInput.value.trim().toLowerCase();
+    
+    // クリアボタンの表示/非表示
+    clearBtn.style.display = searchQuery ? 'block' : 'none';
+    
+    // 検索なしの場合は全選手を表示
+    if (!searchQuery) {
+        select.innerHTML = '<option value="">選手を選択してください</option>';
+        ALL_PLAYERS.forEach(player => {
+            const option = document.createElement('option');
+            option.value = player.zekken;
+            option.textContent = `${player.zekken}番: ${player.name}${player.club ? ` (${player.club})` : ''}`;
+            select.appendChild(option);
+        });
+        resultCount.textContent = '';
+        return;
+    }
+    
+    // 検索実行
+    const filteredPlayers = ALL_PLAYERS.filter(player => {
+        // ゼッケン番号で検索（完全一致）
+        if (player.zekken.toString() === searchQuery) {
+            return true;
+        }
+        
+        // 選手名で検索（部分一致）
+        if (player.name && player.name.toLowerCase().includes(searchQuery)) {
+            return true;
+        }
+        
+        // 所属で検索（部分一致）
+        if (player.club && player.club.toLowerCase().includes(searchQuery)) {
+            return true;
+        }
+        
+        return false;
+    });
+    
+    // 検索結果を表示
+    select.innerHTML = '<option value="">選手を選択してください</option>';
+    
+    if (filteredPlayers.length === 0) {
+        resultCount.textContent = '該当する選手が見つかりません';
+        resultCount.style.color = '#ff6b6b';
+    } else {
+        filteredPlayers.forEach(player => {
+            const option = document.createElement('option');
+            option.value = player.zekken;
+            option.textContent = `${player.zekken}番: ${player.name}${player.club ? ` (${player.club})` : ''}`;
+            select.appendChild(option);
+        });
+        
+        resultCount.textContent = `${filteredPlayers.length}件の選手が見つかりました`;
+        resultCount.style.color = '#51cf66';
+        
+        // 1件のみの場合は自動選択
+        if (filteredPlayers.length === 1) {
+            select.value = filteredPlayers[0].zekken;
+        }
+    }
+}
+
+window.clearSearch = function() {
+    const searchInput = document.getElementById('player-search');
+    const clearBtn = document.getElementById('clear-search-btn');
+    const resultCount = document.getElementById('search-result-count');
+    const select = document.getElementById('player-select');
+    
+    // 検索ボックスをクリア
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    resultCount.textContent = '';
+    
+    // 全選手を表示
+    select.innerHTML = '<option value="">選手を選択してください</option>';
+    ALL_PLAYERS.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.zekken;
+        option.textContent = `${player.zekken}番: ${player.name}${player.club ? ` (${player.club})` : ''}`;
+        select.appendChild(option);
+    });
+}
+
+// ===================================
 // 釣果登録
 // ===================================
 window.registerCatch = async function() {

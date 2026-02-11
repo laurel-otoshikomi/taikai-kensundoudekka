@@ -368,6 +368,14 @@
                     <div class="card">
                         <h2>📝 釣果登録</h2>
                         <div class="input-group">
+                            <label>🔍 選手を検索</label>
+                            <div style="position: relative;">
+                                <input type="text" id="player-search" placeholder="選手名またはゼッケン番号で検索..." oninput="searchPlayer()">
+                                <button onclick="clearSearch()" id="clear-search-btn" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: white; display: none;">✕</button>
+                            </div>
+                            <div id="search-result-count" style="font-size: 12px; color: #aaa; margin-top: 5px;"></div>
+                        </div>
+                        <div class="input-group">
                             <label>選手選択</label>
                             <select id="player-select">
                                 <option value="">選手を選択してください</option>
