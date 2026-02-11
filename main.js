@@ -180,7 +180,7 @@ async function openTournament(tournamentId) {
     // UIを更新
     document.getElementById('tournament-name').textContent = CONFIG.name;
     const limitText = CONFIG.limit_count > 0 ? `リミット${CONFIG.limit_count}匹` : '総力戦';
-    document.getElementById('tournament-info').textContent = `${CONFIG.rule_type}ルール / ${limitText}`;
+    document.getElementById('tournament-info').textContent = limitText;
     
     // ページ表示切り替え
     document.getElementById('top-page').style.display = 'none';
@@ -321,22 +321,22 @@ window.login = function() {
 
 // ログアウト
 window.logout = function() {
-    if (!confirm('ログアウトしますか？')) {
-        return;
-    }
-    
-    AUTH_LEVEL = 0;
-    document.getElementById('login-status').style.display = 'none';
-    document.getElementById('input-form').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-    document.getElementById('password-input').value = '';
-    
-    // 設定画面を非表示
-    document.getElementById('rule-settings-card').style.display = 'none';
-    document.getElementById('player-management-card').style.display = 'none';
-    
-    showToast('ログアウトしました');
-    console.log('🔓 ログアウト');
+    // カスタム確認ダイアログ（トースト風）
+    showConfirmDialog('ログアウトしますか？', () => {
+        AUTH_LEVEL = 0;
+        
+        // リアルタイム購読を解除
+        if (REALTIME_SUBSCRIPTION) {
+            REALTIME_SUBSCRIPTION.unsubscribe();
+            REALTIME_SUBSCRIPTION = null;
+        }
+        
+        showToast('ログアウトしました');
+        console.log('🔓 ログアウト');
+        
+        // トップ画面に戻る
+        window.location.href = '/';
+    });
 }
 
 // ログイン状態を更新
@@ -1036,9 +1036,8 @@ window.updateTournamentSettings = async function() {
     showToast('✅ 設定を保存しました');
     
     // 大会情報表示を更新
-    const limitText = CONFIG.limit_count > 0 ? `リミット${CONFIG.limit_count}匹` : '無制限';
-    const ruleName = SORT_OPTIONS[CONFIG.rule_type] || CONFIG.rule_type;
-    document.getElementById('tournament-info').textContent = `${ruleName} / ${limitText}`;
+    const limitText = CONFIG.limit_count > 0 ? `リミット${CONFIG.limit_count}匹` : '総力戦';
+    document.getElementById('tournament-info').textContent = limitText;
     
     // ランキングを再計算
     await loadRanking();
@@ -1058,6 +1057,33 @@ function showToast(message, isError = false) {
     setTimeout(() => {
         toast.style.display = 'none';
     }, 3000);
+}
+
+// ===================================
+// カスタム確認ダイアログ
+// ===================================
+let confirmCallback = null;
+
+function showConfirmDialog(message, callback) {
+    confirmCallback = callback;
+    document.getElementById('confirm-message').textContent = message;
+    const dialog = document.getElementById('confirm-dialog');
+    dialog.style.display = 'flex';
+}
+
+window.confirmAction = function() {
+    const dialog = document.getElementById('confirm-dialog');
+    dialog.style.display = 'none';
+    if (confirmCallback) {
+        confirmCallback();
+        confirmCallback = null;
+    }
+}
+
+window.cancelConfirm = function() {
+    const dialog = document.getElementById('confirm-dialog');
+    dialog.style.display = 'none';
+    confirmCallback = null;
 }
 
 console.log('✅ システム準備完了');
