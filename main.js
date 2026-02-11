@@ -2493,6 +2493,8 @@ window.deleteTournament = async function() {
 // ===================================
 // 結果エクスポート（CSV）
 // ===================================
+// CSVエクスポート（拡張版）
+// ===================================
 
 window.exportResults = async function() {
     if (AUTH_LEVEL !== 2) {
@@ -2501,7 +2503,7 @@ window.exportResults = async function() {
     }
     
     try {
-        // 順位表データを取得
+        // データを取得
         const ranking = FULL_RANKING || [];
         const players = ALL_PLAYERS || [];
         
@@ -2510,19 +2512,76 @@ window.exportResults = async function() {
             return;
         }
         
-        // CSVヘッダー
-        let csv = '順位,ゼッケン番号,名前,所属,リミット合計長寸,1匹最大長寸,1匹最大重量,総枚数,総重量\n';
+        // 全釣果データを取得
+        const { data: allCatches, error: catchesError } = await client
+            .from('catches')
+            .select('*')
+            .eq('tournament_id', CURRENT_TOURNAMENT_ID)
+            .order('created_at', { ascending: false });
         
-        // データ行
+        if (catchesError) {
+            console.error('釣果取得エラー:', catchesError);
+        }
+        
+        // 特別賞データを取得
+        const biggestCatch = await getBiggestCatch();
+        const smallestCatch = await getSmallestCatch();
+        
+        // CSV生成開始
+        let csv = '';
+        
+        // ===== 大会情報 =====
+        csv += '【大会情報】\n';
+        csv += `大会名,"${CONFIG.name || '釣り大会'}"\n`;
+        csv += `作成日,${new Date().toLocaleDateString('ja-JP')}\n`;
+        const ruleTypes = {
+            'limit_total_len': 'リミット合計長寸',
+            'limit_weight': 'リミット合計重量',
+            'total_count': '総枚数',
+            'total_weight': '総重量'
+        };
+        csv += `ルール,"${ruleTypes[CONFIG.rule_type] || 'リミット合計長寸'}"\n`;
+        csv += `リミット匹数,${CONFIG.limit_count > 0 ? CONFIG.limit_count + '匹' : '無制限'}\n`;
+        csv += '\n';
+        
+        // ===== 順位表 =====
+        csv += '【順位表】\n';
+        csv += '順位,ゼッケン番号,名前,所属,リミット合計長寸,1匹最大長寸,1匹最大重量,総枚数,総重量\n';
+        
         ranking.forEach((r, index) => {
             const player = players.find(p => p.zekken === r.zekken) || {};
             csv += `${index + 1},${r.zekken},"${player.name || '未登録'}","${player.club || ''}",${r.limit_total_len || 0},${r.one_max_len || 0},${r.one_max_weight || 0},${r.total_count || 0},${r.total_weight || 0}\n`;
         });
+        csv += '\n';
+        
+        // ===== 特別賞 =====
+        csv += '【特別賞】\n';
+        if (biggestCatch && CONFIG.show_biggest_fish) {
+            const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
+            csv += `大物賞,${biggestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${biggestCatch.length}cm,${biggestCatch.weight || 0}g\n`;
+        }
+        if (smallestCatch && CONFIG.show_smallest_fish) {
+            const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
+            csv += `最小寸賞,${smallestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${smallestCatch.length}cm,${smallestCatch.weight || 0}g\n`;
+        }
+        csv += '\n';
+        
+        // ===== 全釣果データ =====
+        if (allCatches && allCatches.length > 0) {
+            csv += '【全釣果データ】\n';
+            csv += 'ゼッケン番号,名前,所属,長寸(cm),重量(g),登録日時\n';
+            
+            allCatches.forEach(c => {
+                const player = players.find(p => p.zekken === c.zekken) || {};
+                const dateStr = new Date(c.created_at).toLocaleString('ja-JP');
+                csv += `${c.zekken},"${player.name || '未登録'}","${player.club || ''}",${c.length},${c.weight || 0},"${dateStr}"\n`;
+            });
+        }
         
         // ファイル名を生成
         const tournamentName = CONFIG.name || 'tournament';
         const date = new Date().toISOString().split('T')[0];
-        const filename = `${tournamentName}_result_${date}.csv`;
+        const filename = `${tournamentName}_完全版_${date}.csv`;
         
         // BOM付きUTF-8でダウンロード
         const bom = '\uFEFF';
@@ -2661,7 +2720,7 @@ window.exportPDF = async function() {
                         <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
                             <strong style="color: #667eea; font-size: 16px;">🐟 大物賞</strong><br>
                             <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
-                                ${player.name || '未登録'} (${biggestCatch.zekken}番) - ${biggestCatch.length}cm
+                                ${player.name || '未登録'} (${biggestCatch.zekken}番) - 長寸: ${biggestCatch.length}cm ${biggestCatch.weight ? `/ 重量: ${biggestCatch.weight}g` : ''}
                             </span>
                         </div>
                     `);
@@ -2676,7 +2735,7 @@ window.exportPDF = async function() {
                         <div style="background: rgba(255, 183, 77, 0.1); padding: 15px; border-radius: 8px;">
                             <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞</strong><br>
                             <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
-                                ${player.name || '未登録'} (${smallestCatch.zekken}番) - ${smallestCatch.length}cm
+                                ${player.name || '未登録'} (${smallestCatch.zekken}番) - 長寸: ${smallestCatch.length}cm ${smallestCatch.weight ? `/ 重量: ${smallestCatch.weight}g` : ''}
                             </span>
                         </div>
                     `);
@@ -2691,6 +2750,63 @@ window.exportPDF = async function() {
                     </div>
                 `;
             }
+        }
+        
+        // 全釣果データを追加
+        const { data: allCatches, error: catchesError } = await client
+            .from('catches')
+            .select('*')
+            .eq('tournament_id', CURRENT_TOURNAMENT_ID)
+            .order('created_at', { ascending: false });
+        
+        if (!catchesError && allCatches && allCatches.length > 0) {
+            container.innerHTML += `
+                <div style="margin-top: 30px; page-break-before: always;">
+                    <h2 style="font-size: 20px; margin-bottom: 15px; color: #333;">📊 全釣果データ</h2>
+                    <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #51cf66; color: white;">
+                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">No.</th>
+                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">ゼッケン</th>
+                                    <th style="padding: 10px 8px; text-align: left; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">名前</th>
+                                    <th style="padding: 10px 8px; text-align: left; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">所属</th>
+                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">長寸</th>
+                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">重量</th>
+                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold;">登録日時</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${allCatches.map((c, index) => {
+                                    const player = players.find(p => p.zekken === c.zekken) || {};
+                                    const bgColor = index % 2 === 0 ? '#f9f9f9' : 'white';
+                                    const dateStr = new Date(c.created_at).toLocaleString('ja-JP', {
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                    
+                                    return `
+                                        <tr style="background: ${bgColor};">
+                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${index + 1}</td>
+                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${c.zekken}番</td>
+                                            <td style="padding: 8px; text-align: left; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; font-weight: bold;">${player.name || '未登録'}</td>
+                                            <td style="padding: 8px; text-align: left; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${player.club || '-'}</td>
+                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; color: #51cf66; font-weight: bold;">${c.length}cm</td>
+                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; color: #ffd93d; font-weight: bold;">${c.weight || 0}g</td>
+                                            <td style="padding: 8px; text-align: center; font-size: 11px; border-bottom: 1px solid #eee; color: #999;">${dateStr}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 10px; text-align: right; font-size: 12px; color: #666;">
+                        合計: ${allCatches.length}件の釣果
+                    </div>
+                </div>
+            `;
         }
         
         document.body.appendChild(container);
