@@ -230,95 +230,6 @@
             font-size: 48px;
             margin-bottom: 30px;
         }
-        
-        /* iOS風ドラム式セレクター */
-        .drum-picker {
-            position: relative;
-            width: 100%;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            overflow: hidden;
-            touch-action: pan-y;
-        }
-        
-        .drum-picker-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
-        }
-        
-        .drum-picker-overlay::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 40%;
-            background: linear-gradient(to bottom, rgba(26, 26, 46, 1), rgba(26, 26, 46, 0));
-        }
-        
-        .drum-picker-overlay::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 40%;
-            background: linear-gradient(to top, rgba(26, 26, 46, 1), rgba(26, 26, 46, 0));
-        }
-        
-        .drum-picker-selection {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 40px;
-            margin-top: -20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .drum-picker-list {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 80px 0;
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        .drum-picker-item {
-            height: 40px;
-            line-height: 40px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.5);
-            transition: all 0.3s;
-        }
-        
-        .drum-picker-item.active {
-            color: #fff;
-            font-size: 24px;
-        }
-        
-        .drum-picker-button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .drum-picker-button-group button {
-            flex: 1;
-        }
     </style>
 </head>
 <body>
@@ -379,15 +290,9 @@
                         <h2>📝 釣果登録</h2>
                         <div class="input-group">
                             <label>選手選択</label>
-                            <div id="player-drum-picker" class="drum-picker" style="display: none;">
-                                <div class="drum-picker-overlay"></div>
-                                <div class="drum-picker-selection"></div>
-                                <div class="drum-picker-list" id="player-drum-list"></div>
-                            </div>
-                            <button class="btn btn-primary" id="player-select-btn" onclick="openPlayerDrumPicker()">選手を選択</button>
-                            <div id="selected-player-display" style="display: none; margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                                <span id="selected-player-text" style="font-size: 18px; font-weight: bold;"></span>
-                            </div>
+                            <select id="player-select">
+                                <option value="">選手を選択してください</option>
+                            </select>
                         </div>
                         <div class="input-group">
                             <label>長寸 (cm)</label>
@@ -425,15 +330,15 @@
 
                     <div class="input-group">
                         <label>📊 リミット匹数（上位何匹をカウントするか）</label>
-                        <div id="limit-drum-picker" class="drum-picker" style="display: none;">
-                            <div class="drum-picker-overlay"></div>
-                            <div class="drum-picker-selection"></div>
-                            <div class="drum-picker-list" id="limit-drum-list"></div>
-                        </div>
-                        <button class="btn btn-primary" id="limit-select-btn" onclick="openLimitDrumPicker()">リミット匹数を選択</button>
-                        <div id="selected-limit-display" style="display: none; margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                            <span id="selected-limit-text" style="font-size: 18px; font-weight: bold;"></span>
-                        </div>
+                        <select id="limit-count">
+                            <option value="0">無制限（全釣果カウント）</option>
+                            <option value="1">リミット1匹</option>
+                            <option value="2">リミット2匹</option>
+                            <option value="3">リミット3匹</option>
+                            <option value="4">リミット4匹</option>
+                            <option value="5">リミット5匹</option>
+                            <option value="10">リミット10匹</option>
+                        </select>
                     </div>
 
                     <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">
