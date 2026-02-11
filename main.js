@@ -473,6 +473,29 @@ window.searchPlayer = function() {
             return true;
         }
         
+        // 読み仮名で検索（優先検索、部分一致、ひらがな⇔カタカナ対応）
+        if (player.reading) {
+            const normalizedReading = normalizeText(player.reading);
+            
+            // 元の文字列で検索
+            if (player.reading.includes(searchQuery)) {
+                console.log('✅ 読み仮名一致（完全）:', player.reading, '検索:', searchQuery);
+                return true;
+            }
+            
+            // ひらがな変換して検索
+            if (normalizedReading.hiragana.includes(normalizedQuery.hiragana) && normalizedQuery.hiragana !== '') {
+                console.log('✅ 読み仮名一致（ひらがな）:', player.reading, '検索:', searchQuery);
+                return true;
+            }
+            
+            // カタカナ変換して検索
+            if (normalizedReading.katakana.includes(normalizedQuery.katakana) && normalizedQuery.katakana !== '') {
+                console.log('✅ 読み仮名一致（カタカナ）:', player.reading, '検索:', searchQuery);
+                return true;
+            }
+        }
+        
         // 選手名で検索（部分一致、ひらがな⇔カタカナ対応）
         if (player.name) {
             const normalizedName = normalizeText(player.name);
@@ -1159,6 +1182,7 @@ window.addPlayer = async function() {
     const zekken = parseInt(document.getElementById('new-zekken').value);
     const name = document.getElementById('new-name').value.trim();
     const club = document.getElementById('new-club').value.trim();
+    const reading = document.getElementById('new-reading').value.trim();
     
     if (!zekken || !name) {
         showToast('ゼッケン番号と名前は必須です', true);
@@ -1178,7 +1202,8 @@ window.addPlayer = async function() {
             tournament_id: CURRENT_TOURNAMENT_ID,
             zekken: zekken,
             name: name,
-            club: club || ''
+            club: club || '',
+            reading: reading || ''
         });
     
     if (error) {
@@ -1192,6 +1217,7 @@ window.addPlayer = async function() {
     document.getElementById('new-zekken').value = '';
     document.getElementById('new-name').value = '';
     document.getElementById('new-club').value = '';
+    document.getElementById('new-reading').value = '';
     document.getElementById('zekken-warning').style.display = 'none';
     document.getElementById('add-player-btn').disabled = false;
     
