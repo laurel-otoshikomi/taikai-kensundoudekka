@@ -5,9 +5,9 @@
 // Supabaseをインポート
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-// Supabase接続
-const supabaseUrl = 'https://pajzsgbnoqdinvfmvlog.supabase.co';
-const supabaseKey = 'sb_publishable_oP9HcAQrGbVNS7dHN4G8UQ_0r5gUTzD';
+// Supabase接続（新しいプロジェクト）
+const supabaseUrl = 'https://pkjvdtvomqzcnfhkqven.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBranZkdHZvbXF6Y25maGtxdmVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkzMTMzNzcsImV4cCI6MjA1NDg4OTM3N30.eHosTnLVgetda3nWuv1Tlw_bgy5DhsB_mU7F4g5SX0U';
 const client = createClient(supabaseUrl, supabaseKey);
 
 // グローバル状態
