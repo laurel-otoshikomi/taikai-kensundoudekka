@@ -2530,9 +2530,9 @@ window.exportResults = async function() {
             console.error('釣果取得エラー:', catchesError);
         }
         
-        // 特別賞データを取得
-        const biggestCatch = await getBiggestCatch();
-        const smallestCatch = await getSmallestCatch();
+        // 特別賞データを取得（3位まで）
+        const biggestCatches = await getBiggestCatches(3);
+        const smallestCatches = await getSmallestCatches(3);
         
         // CSV生成開始
         let csv = '';
@@ -2563,23 +2563,33 @@ window.exportResults = async function() {
         
         // ===== 特別賞 =====
         csv += '【特別賞】\n';
-        console.log('🏆 特別賞チェック - biggestCatch:', biggestCatch);
-        console.log('🏆 特別賞チェック - smallestCatch:', smallestCatch);
-        console.log('🏆 特別賞チェック - CONFIG:', CONFIG);
+        console.log('🏆 特別賞チェック - biggestCatches:', biggestCatches);
+        console.log('🏆 特別賞チェック - smallestCatches:', smallestCatches);
         
-        // 特別賞データがあれば常に出力（設定に関わらず）
-        if (biggestCatch) {
-            const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
-            csv += `大物賞,${biggestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${biggestCatch.length}cm,${biggestCatch.weight || 0}g\n`;
-            console.log('✅ 大物賞を追加しました');
+        // 大物賞（上位3位まで）
+        if (biggestCatches.length > 0) {
+            csv += '大物賞（長寸上位）\n';
+            csv += '順位,ゼッケン番号,名前,所属,長寸(cm),重量(g)\n';
+            biggestCatches.forEach((c, index) => {
+                const player = players.find(p => p.zekken === c.zekken) || {};
+                csv += `${index + 1}位,${c.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${c.length},${c.weight || 0}\n`;
+            });
+            csv += '\n';
+            console.log(`✅ 大物賞を${biggestCatches.length}件追加しました`);
         } else {
             console.log('⚠️ 大物賞データなし');
         }
         
-        if (smallestCatch) {
-            const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
-            csv += `最小寸賞,${smallestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${smallestCatch.length}cm,${smallestCatch.weight || 0}g\n`;
-            console.log('✅ 最小寸賞を追加しました');
+        // 最小寸賞（上位3位まで）
+        if (smallestCatches.length > 0) {
+            csv += '最小寸賞（長寸下位）\n';
+            csv += '順位,ゼッケン番号,名前,所属,長寸(cm),重量(g)\n';
+            smallestCatches.forEach((c, index) => {
+                const player = players.find(p => p.zekken === c.zekken) || {};
+                csv += `${index + 1}位,${c.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${c.length},${c.weight || 0}\n`;
+            });
+            csv += '\n';
+            console.log(`✅ 最小寸賞を${smallestCatches.length}件追加しました`);
         } else {
             console.log('⚠️ 最小寸賞データなし');
         }
@@ -2727,37 +2737,51 @@ window.exportPDF = async function() {
             </div>
         `;
         
-        // 特別賞を追加（データがあれば常に表示）
+        // 特別賞を追加（3位まで表示）
         const prizesHtml = [];
         
-        const biggestCatch = await getBiggestCatch();
-        console.log('🏆 PDF大物賞データ:', biggestCatch);
-        if (biggestCatch) {
-            const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
-            prizesHtml.push(`
+        // 大物賞（上位3位まで）
+        const biggestCatches = await getBiggestCatches(3);
+        console.log('🏆 PDF大物賞データ:', biggestCatches);
+        if (biggestCatches.length > 0) {
+            let biggestHtml = `
                 <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-                    <strong style="color: #667eea; font-size: 16px;">🐟 大物賞</strong><br>
-                    <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
-                        ${player.name || '未登録'} (${biggestCatch.zekken}番) - 長寸: ${biggestCatch.length}cm ${biggestCatch.weight ? `/ 重量: ${biggestCatch.weight}g` : ''}
-                    </span>
-                </div>
-            `);
-            console.log('✅ PDF大物賞を追加しました');
+                    <strong style="color: #667eea; font-size: 16px;">🐟 大物賞（長寸上位）</strong><br>
+            `;
+            biggestCatches.forEach((c, index) => {
+                const player = players.find(p => p.zekken === c.zekken) || {};
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                biggestHtml += `
+                    <div style="font-size: 14px; margin-top: 8px; padding: 8px; background: white; border-radius: 5px;">
+                        ${medal} ${index + 1}位: ${player.name || '未登録'} (${c.zekken}番) - 長寸: ${c.length}cm ${c.weight ? `/ 重量: ${c.weight}g` : ''}
+                    </div>
+                `;
+            });
+            biggestHtml += `</div>`;
+            prizesHtml.push(biggestHtml);
+            console.log(`✅ PDF大物賞を${biggestCatches.length}件追加しました`);
         }
         
-        const smallestCatch = await getSmallestCatch();
-        console.log('🏆 PDF最小寸賞データ:', smallestCatch);
-        if (smallestCatch) {
-            const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
-            prizesHtml.push(`
+        // 最小寸賞（上位3位まで）
+        const smallestCatches = await getSmallestCatches(3);
+        console.log('🏆 PDF最小寸賞データ:', smallestCatches);
+        if (smallestCatches.length > 0) {
+            let smallestHtml = `
                 <div style="background: rgba(255, 183, 77, 0.1); padding: 15px; border-radius: 8px;">
-                    <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞</strong><br>
-                    <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
-                        ${player.name || '未登録'} (${smallestCatch.zekken}番) - 長寸: ${smallestCatch.length}cm ${smallestCatch.weight ? `/ 重量: ${smallestCatch.weight}g` : ''}
-                    </span>
-                </div>
-            `);
-            console.log('✅ PDF最小寸賞を追加しました');
+                    <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞（長寸下位）</strong><br>
+            `;
+            smallestCatches.forEach((c, index) => {
+                const player = players.find(p => p.zekken === c.zekken) || {};
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                smallestHtml += `
+                    <div style="font-size: 14px; margin-top: 8px; padding: 8px; background: white; border-radius: 5px;">
+                        ${medal} ${index + 1}位: ${player.name || '未登録'} (${c.zekken}番) - 長寸: ${c.length}cm ${c.weight ? `/ 重量: ${c.weight}g` : ''}
+                    </div>
+                `;
+            });
+            smallestHtml += `</div>`;
+            prizesHtml.push(smallestHtml);
+            console.log(`✅ PDF最小寸賞を${smallestCatches.length}件追加しました`);
         }
         
         if (prizesHtml.length > 0) {
@@ -2879,28 +2903,40 @@ window.exportPDF = async function() {
     }
 }
 
-// 大物賞データ取得
-async function getBiggestCatch() {
+// 大物賞データ取得（上位3位まで）
+async function getBiggestCatches(limit = 3) {
     const { data, error } = await client
         .from('catches')
         .select('*')
         .eq('tournament_id', CURRENT_TOURNAMENT_ID)
         .order('length', { ascending: false })
-        .limit(1);
+        .limit(limit);
     
-    if (error || !data || data.length === 0) return null;
-    return data[0];
+    if (error || !data || data.length === 0) return [];
+    return data;
 }
 
-// 最小寸賞データ取得
-async function getSmallestCatch() {
+// 大物賞データ取得（1位のみ - 後方互換性）
+async function getBiggestCatch() {
+    const results = await getBiggestCatches(1);
+    return results.length > 0 ? results[0] : null;
+}
+
+// 最小寸賞データ取得（上位3位まで）
+async function getSmallestCatches(limit = 3) {
     const { data, error } = await client
         .from('catches')
         .select('*')
         .eq('tournament_id', CURRENT_TOURNAMENT_ID)
         .order('length', { ascending: true })
-        .limit(1);
+        .limit(limit);
     
-    if (error || !data || data.length === 0) return null;
-    return data[0];
+    if (error || !data || data.length === 0) return [];
+    return data;
+}
+
+// 最小寸賞データ取得（1位のみ - 後方互換性）
+async function getSmallestCatch() {
+    const results = await getSmallestCatches(1);
+    return results.length > 0 ? results[0] : null;
 }
