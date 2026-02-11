@@ -1107,9 +1107,9 @@ async function loadRanking() {
     console.log('📊 リミット匹数:', CONFIG.limit_count);
     console.log('🎯 大会ルール:', CONFIG.rule_type);
     
-    // 順位非表示設定を確認
-    const isRankingHidden = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`) === 'true';
-    console.log('🔒 順位非表示設定:', isRankingHidden);
+    // 順位非表示設定を確認（データベースから）
+    const isRankingHidden = CONFIG.hide_ranking === true;
+    console.log('🔒 順位非表示設定:', isRankingHidden, '(CONFIG.hide_ranking:', CONFIG.hide_ranking, ')');
     
     // 管理者以外で順位が非表示の場合
     if (isRankingHidden && AUTH_LEVEL < 2) {
@@ -2152,23 +2152,22 @@ async function loadTournamentSettings() {
     console.log('🏆 特別賞設定:', { show_biggest_fish: CONFIG.show_biggest_fish, show_smallest_fish: CONFIG.show_smallest_fish });
     
     // 順位非表示設定を復元（デフォルトはfalse）
-    const hideRanking = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`);
-    const hideRankingBool = hideRanking === 'true';
+    CONFIG.hide_ranking = CONFIG.hide_ranking === true;
     
     const hideRankingCheckbox = document.getElementById('hide-ranking');
     if (hideRankingCheckbox) {
-        hideRankingCheckbox.checked = hideRankingBool;
+        hideRankingCheckbox.checked = CONFIG.hide_ranking;
     }
     
     // 管理者の場合、非表示通知を表示
     if (AUTH_LEVEL === 2) {
         const notice = document.getElementById('ranking-hidden-notice');
         if (notice) {
-            notice.style.display = hideRankingBool ? 'block' : 'none';
+            notice.style.display = CONFIG.hide_ranking ? 'block' : 'none';
         }
     }
     
-    console.log('🔒 順位非表示設定:', hideRankingBool);
+    console.log('🔒 順位非表示設定:', CONFIG.hide_ranking);
     
     // 初期選択肢を設定
     updateSortOptions();
@@ -2268,10 +2267,9 @@ window.updateTournamentSettings = async function() {
     // 順位非表示設定を取得
     const hideRanking = document.getElementById('hide-ranking').checked;
     
-    // localStorageに保存（大会ごとに設定を保持）
+    // localStorageに保存（特別賞のみ）
     localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`, showBiggestFish);
     localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`, showSmallestFish);
-    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`, hideRanking);
     
     console.log('💾 順位非表示設定を保存:', hideRanking);
     
@@ -2284,7 +2282,7 @@ window.updateTournamentSettings = async function() {
         return;
     }
     
-    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3, showBiggestFish, showSmallestFish });
+    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3, showBiggestFish, showSmallestFish, hideRanking });
     console.log('💾 更新条件:', { id: CURRENT_TOURNAMENT_ID });
     console.log('💾 更新前のCONFIG.limit_count:', CONFIG.limit_count);
     
@@ -2295,7 +2293,8 @@ window.updateTournamentSettings = async function() {
             limit_count: limitCount,
             sort1: sort1 || null,
             sort2: sort2 || null,
-            sort3: sort3 || null
+            sort3: sort3 || null,
+            hide_ranking: hideRanking
         })
         .eq('id', CURRENT_TOURNAMENT_ID)
         .select();
@@ -2338,6 +2337,7 @@ window.updateTournamentSettings = async function() {
     CONFIG = updatedConfig;
     CONFIG.show_biggest_fish = showBiggestFish;
     CONFIG.show_smallest_fish = showSmallestFish;
+    CONFIG.hide_ranking = hideRanking;
     console.log('✅ 再取得後のCONFIG:', CONFIG);
     
     showToast('✅ 設定を保存しました');
@@ -3401,7 +3401,7 @@ window.createTournament = async function() {
 // ===================================
 
 // 順位表示の切り替え
-window.toggleRankingVisibility = function() {
+window.toggleRankingVisibility = async function() {
     if (AUTH_LEVEL !== 2) {
         showToast('管理者権限が必要です', true);
         document.getElementById('hide-ranking').checked = false;
@@ -3410,8 +3410,24 @@ window.toggleRankingVisibility = function() {
     
     const hideRanking = document.getElementById('hide-ranking').checked;
     
-    // localStorageに即座に保存
-    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_hide_ranking`, hideRanking);
+    console.log('🔒 順位非表示設定を更新:', hideRanking);
+    
+    // データベースに即座に保存
+    const { data, error } = await client
+        .from('tournaments')
+        .update({ hide_ranking: hideRanking })
+        .eq('id', CURRENT_TOURNAMENT_ID)
+        .select();
+    
+    if (error) {
+        console.error('❌ 順位非表示設定の保存エラー:', error);
+        showToast('❌ 設定の保存に失敗しました', true);
+        return;
+    }
+    
+    // CONFIGを更新
+    CONFIG.hide_ranking = hideRanking;
+    console.log('✅ CONFIG更新:', CONFIG);
     
     // 管理者通知を更新
     const notice = document.getElementById('ranking-hidden-notice');
@@ -3428,7 +3444,7 @@ window.toggleRankingVisibility = function() {
     }
     
     // 順位表を再読み込み（管理者は常に表示、参加者は非表示）
-    loadRanking();
+    await loadRanking();
 }
 
 console.log('✅ 順位表示制御機能を読み込みました');
