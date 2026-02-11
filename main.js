@@ -2538,3 +2538,23 @@ window.exportResults = async function() {
         showToast('❌ エクスポートに失敗しました', true);
     }
 }
+
+// ===================================
+// 全角数字の自動変換（入力欄）
+// ===================================
+document.addEventListener('DOMContentLoaded', function() {
+    const numberInputIds = ['zekken-number-input', 'length-input', 'weight-input'];
+    
+    numberInputIds.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', function(e) {
+                const originalValue = e.target.value;
+                const convertedValue = toHalfWidth(originalValue);
+                if (originalValue !== convertedValue) {
+                    e.target.value = convertedValue;
+                }
+            });
+        }
+    });
+});
