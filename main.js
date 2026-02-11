@@ -329,10 +329,21 @@ window.login = function() {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('input-form').style.display = 'block';
     
+    // 管理者・運営スタッフの場合、専用UIを表示
+    if (AUTH_LEVEL >= 1) {
+        // 管理者限定の要素を表示
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = 'block';
+        });
+    }
+    
     // 管理者の場合、大会管理カードを表示
     if (AUTH_LEVEL === 2) {
-        document.getElementById('tournament-management-card').style.display = 'block';
-        updateTournamentStatusDisplay();
+        const managementCard = document.getElementById('tournament-management-card');
+        if (managementCard) {
+            managementCard.style.display = 'block';
+            updateTournamentStatusDisplay();
+        }
     }
     
     loadPlayers();
@@ -3092,44 +3103,62 @@ function addToMyTournaments(tournamentId) {
 // テーマカスタマイズ
 // ===================================
 
+// テーマプリセットを適用
+window.applyThemePreset = function(element) {
+    const primaryColor = element.dataset.primary;
+    const secondaryColor = element.dataset.secondary;
+    
+    // カラーピッカーと入力欄を更新
+    document.getElementById('primary-color').value = primaryColor;
+    document.getElementById('primary-color-text').value = primaryColor;
+    document.getElementById('secondary-color').value = secondaryColor;
+    document.getElementById('secondary-color-text').value = secondaryColor;
+    
+    // CSS変数を即座に更新（プレビュー）
+    document.documentElement.style.setProperty('--primary-color', primaryColor);
+    document.documentElement.style.setProperty('--secondary-color', secondaryColor);
+    
+    // 選択状態を視覚的に表示
+    document.querySelectorAll('.theme-preset').forEach(preset => {
+        preset.style.border = '2px solid transparent';
+        preset.style.transform = 'scale(1)';
+    });
+    element.style.border = '2px solid white';
+    element.style.transform = 'scale(1.05)';
+}
+
 // テーマを読み込み
 function loadTheme() {
     const theme = JSON.parse(localStorage.getItem('customTheme') || '{}');
     
     if (theme.primaryColor) {
         document.documentElement.style.setProperty('--primary-color', theme.primaryColor);
-        document.getElementById('primary-color').value = theme.primaryColor;
-        document.getElementById('primary-color-text').value = theme.primaryColor;
+        const primaryColorEl = document.getElementById('primary-color');
+        const primaryColorTextEl = document.getElementById('primary-color-text');
+        if (primaryColorEl) primaryColorEl.value = theme.primaryColor;
+        if (primaryColorTextEl) primaryColorTextEl.value = theme.primaryColor;
     }
     
     if (theme.secondaryColor) {
         document.documentElement.style.setProperty('--secondary-color', theme.secondaryColor);
-        document.getElementById('secondary-color').value = theme.secondaryColor;
-        document.getElementById('secondary-color-text').value = theme.secondaryColor;
+        const secondaryColorEl = document.getElementById('secondary-color');
+        const secondaryColorTextEl = document.getElementById('secondary-color-text');
+        if (secondaryColorEl) secondaryColorEl.value = theme.secondaryColor;
+        if (secondaryColorTextEl) secondaryColorTextEl.value = theme.secondaryColor;
     }
     
-    if (theme.logoUrl) {
-        const logos = document.querySelectorAll('.logo');
-        logos.forEach(logo => {
-            logo.src = theme.logoUrl;
-            logo.classList.add('visible');
-        });
-        
-        document.getElementById('logo-preview').style.display = 'block';
-        document.getElementById('logo-preview-img').src = theme.logoUrl;
-    }
+    // ロゴは別管理（saveLogo/removeLogoで管理）
+    loadLogo();
 }
 
-// テーマを保存
+// テーマを保存（色のみ）
 window.saveTheme = function() {
     const primaryColor = document.getElementById('primary-color').value;
     const secondaryColor = document.getElementById('secondary-color').value;
-    const logoUrl = document.getElementById('logo-preview-img').src;
     
     const theme = {
         primaryColor,
-        secondaryColor,
-        logoUrl: logoUrl && !logoUrl.includes('blob:') ? logoUrl : localStorage.getItem('customLogo') || ''
+        secondaryColor
     };
     
     localStorage.setItem('customTheme', JSON.stringify(theme));
@@ -3141,12 +3170,11 @@ window.saveTheme = function() {
     showToast('✅ テーマを保存しました');
 }
 
-// テーマをリセット
+// テーマをリセット（色のみ）
 window.resetTheme = function() {
     if (!confirm('テーマをデフォルトに戻しますか？')) return;
     
     localStorage.removeItem('customTheme');
-    localStorage.removeItem('customLogo');
     
     document.documentElement.style.setProperty('--primary-color', '#667eea');
     document.documentElement.style.setProperty('--secondary-color', '#764ba2');
@@ -3156,22 +3184,27 @@ window.resetTheme = function() {
     document.getElementById('secondary-color').value = '#764ba2';
     document.getElementById('secondary-color-text').value = '#764ba2';
     
-    const logos = document.querySelectorAll('.logo');
-    logos.forEach(logo => {
-        logo.src = '';
-        logo.classList.remove('visible');
+    // プリセットの選択状態をリセット
+    document.querySelectorAll('.theme-preset').forEach(preset => {
+        preset.style.border = '2px solid transparent';
+        preset.style.transform = 'scale(1)';
     });
-    
-    document.getElementById('logo-preview').style.display = 'none';
     
     showToast('✅ テーマをリセットしました');
 }
 
-// ロゴアップロード
+// ===================================
+// ロゴ管理（管理者のみ）
+// ===================================
+
+let tempLogoData = null; // 一時的なロゴデータ
+
+// ロゴをアップロード
 window.handleLogoUpload = function(event) {
     const file = event.target.files[0];
     if (!file) return;
     
+    // 画像形式チェック
     if (!file.type.startsWith('image/')) {
         showToast('❌ 画像ファイルを選択してください', true);
         return;
@@ -3179,26 +3212,71 @@ window.handleLogoUpload = function(event) {
     
     const reader = new FileReader();
     reader.onload = function(e) {
-        const dataUrl = e.target.result;
-        localStorage.setItem('customLogo', dataUrl);
-        
-        const logos = document.querySelectorAll('.logo');
-        logos.forEach(logo => {
-            logo.src = dataUrl;
-            logo.classList.add('visible');
-        });
-        
-        document.getElementById('logo-preview').style.display = 'block';
-        document.getElementById('logo-preview-img').src = dataUrl;
-        
-        showToast('✅ ロゴをアップロードしました');
+        const img = new Image();
+        img.onload = function() {
+            // Canvasで画像を縮小（最大幅200px、高さ80px）
+            const maxWidth = 200;
+            const maxHeight = 80;
+            let width = img.width;
+            let height = img.height;
+            
+            // アスペクト比を保持して縮小
+            if (width > maxWidth) {
+                height = (maxWidth / width) * height;
+                width = maxWidth;
+            }
+            if (height > maxHeight) {
+                width = (maxHeight / height) * width;
+                height = maxHeight;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Base64に変換
+            tempLogoData = canvas.toDataURL('image/png', 0.9);
+            
+            // プレビュー表示
+            document.getElementById('logo-preview').style.display = 'block';
+            document.getElementById('logo-preview-img').src = tempLogoData;
+            
+            showToast('✅ ロゴをプレビューしました（「💾 ロゴを保存」をクリックして保存してください）');
+        };
+        img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
 
+// ロゴを保存
+window.saveLogo = function() {
+    if (!tempLogoData && !localStorage.getItem('customLogo')) {
+        showToast('⚠️ ロゴがアップロードされていません', true);
+        return;
+    }
+    
+    const logoData = tempLogoData || localStorage.getItem('customLogo');
+    localStorage.setItem('customLogo', logoData);
+    tempLogoData = null;
+    
+    // ヘッダーのロゴを更新
+    const logos = document.querySelectorAll('.logo');
+    logos.forEach(logo => {
+        logo.src = logoData;
+        logo.classList.add('visible');
+    });
+    
+    showToast('✅ ロゴを保存しました');
+}
+
 // ロゴを削除
 window.removeLogo = function() {
+    if (!confirm('ロゴを削除しますか？')) return;
+    
     localStorage.removeItem('customLogo');
+    tempLogoData = null;
     
     const logos = document.querySelectorAll('.logo');
     logos.forEach(logo => {
@@ -3211,6 +3289,26 @@ window.removeLogo = function() {
     
     showToast('✅ ロゴを削除しました');
 }
+
+// ロゴを読み込み
+function loadLogo() {
+    const logoData = localStorage.getItem('customLogo');
+    if (logoData) {
+        const logos = document.querySelectorAll('.logo');
+        logos.forEach(logo => {
+            logo.src = logoData;
+            logo.classList.add('visible');
+        });
+        
+        const previewEl = document.getElementById('logo-preview');
+        const previewImgEl = document.getElementById('logo-preview-img');
+        if (previewEl && previewImgEl) {
+            previewEl.style.display = 'block';
+            previewImgEl.src = logoData;
+        }
+    }
+}
+
 
 // カラーピッカーとテキスト入力を同期
 document.addEventListener('DOMContentLoaded', function() {

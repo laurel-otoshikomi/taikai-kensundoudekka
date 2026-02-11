@@ -850,25 +850,67 @@
                         自分だけのテーマを設定できます（他の参加者には影響しません）
                     </p>
                     
-                    <!-- メインカラー -->
+                    <!-- テーマプリセット -->
                     <div class="input-group">
-                        <label>🎨 メインカラー（プライマリ）</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="color" id="primary-color" value="#667eea" style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
-                            <input type="text" id="primary-color-text" value="#667eea" placeholder="#667eea" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white;">
+                        <label>✨ テーマプリセット</label>
+                        <div id="theme-presets" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                            <div class="theme-preset" data-primary="#667eea" data-secondary="#764ba2" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                🟣 デフォルト<br>（紫）
+                            </div>
+                            <div class="theme-preset" data-primary="#FF5722" data-secondary="#FF9800" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #FF5722, #FF9800); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                🟠 オレンジ<br>（情熱）
+                            </div>
+                            <div class="theme-preset" data-primary="#2196F3" data-secondary="#00BCD4" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #2196F3, #00BCD4); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                🔵 ブルー<br>（爽やか）
+                            </div>
+                            <div class="theme-preset" data-primary="#4CAF50" data-secondary="#8BC34A" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #4CAF50, #8BC34A); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                🟢 グリーン<br>（自然）
+                            </div>
+                            <div class="theme-preset" data-primary="#E91E63" data-secondary="#FF4081" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #E91E63, #FF4081); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                🩷 ピンク<br>（華やか）
+                            </div>
+                            <div class="theme-preset" data-primary="#9C27B0" data-secondary="#E040FB" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #9C27B0, #E040FB); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                🟣 パープル<br>（高級）
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- セカンダリカラー -->
-                    <div class="input-group">
-                        <label>🎨 セカンダリカラー</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="color" id="secondary-color" value="#764ba2" style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
-                            <input type="text" id="secondary-color-text" value="#764ba2" placeholder="#764ba2" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white;">
+                    <!-- カスタムカラー -->
+                    <details style="margin-bottom: 20px;">
+                        <summary style="cursor: pointer; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 10px;">
+                            🎨 カスタムカラー設定
+                        </summary>
+                        
+                        <div class="input-group">
+                            <label>🎨 メインカラー（プライマリ）</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="primary-color" value="#667eea" style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
+                                <input type="text" id="primary-color-text" value="#667eea" placeholder="#667eea" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white;">
+                            </div>
                         </div>
-                    </div>
+                        
+                        <div class="input-group">
+                            <label>🎨 セカンダリカラー</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="secondary-color" value="#764ba2" style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
+                                <input type="text" id="secondary-color-text" value="#764ba2" placeholder="#764ba2" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white;">
+                            </div>
+                        </div>
+                    </details>
                     
-                    <!-- ロゴ画像 -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 30px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <button class="btn btn-primary" onclick="saveTheme()" style="flex: 1;">💾 テーマを保存</button>
+                        <button class="btn" onclick="resetTheme()" style="flex: 1; background: rgba(255,255,255,0.2);">🔄 リセット</button>
+                    </div>
+                </div>
+
+                <!-- ロゴ管理（管理者のみ） -->
+                <div class="card admin-only" style="display: none;">
+                    <h2>🖼️ ロゴ管理</h2>
+                    <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">
+                        大会ロゴを設定します（管理者・運営スタッフのみ）
+                    </p>
+                    
                     <div class="input-group">
                         <label>🖼️ ロゴ画像</label>
                         <input type="file" id="logo-upload" accept="image/*" style="display: none;" onchange="handleLogoUpload(event)">
@@ -876,21 +918,21 @@
                             📤 ロゴをアップロード
                         </button>
                         <div id="logo-preview" style="text-align: center; margin-top: 10px; display: none;">
-                            <img id="logo-preview-img" src="" alt="Logo Preview" style="max-width: 200px; max-height: 100px; border-radius: 8px;">
-                            <button class="btn btn-danger" onclick="removeLogo()" style="margin-top: 10px; padding: 8px 15px; font-size: 14px;">
-                                🗑️ ロゴを削除
-                            </button>
+                            <img id="logo-preview-img" src="" alt="Logo Preview" style="max-width: 200px; max-height: 80px; border-radius: 8px; object-fit: contain;">
                         </div>
+                        <p style="font-size: 12px; color: #aaa; margin-top: 10px;">
+                            ※ アップロード時に自動的に最適なサイズに調整されます
+                        </p>
                     </div>
                     
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-primary" onclick="saveTheme()" style="flex: 1;">💾 テーマを保存</button>
-                        <button class="btn" onclick="resetTheme()" style="flex: 1; background: rgba(255,255,255,0.2);">🔄 リセット</button>
+                        <button class="btn btn-primary" onclick="saveLogo()" style="flex: 1;">💾 ロゴを保存</button>
+                        <button class="btn btn-danger" onclick="removeLogo()" style="flex: 1;">🗑️ ロゴを削除</button>
                     </div>
                 </div>
 
-                <!-- 選手管理 -->
-                <div class="card">
+                <!-- 選手管理（管理者のみ） -->
+                <div class="card admin-only" style="display: none;">
                     <h2>👥 選手管理</h2>
                     
                     <!-- CSVインポート -->
@@ -971,3 +1013,14 @@
     <script type="module" src="/main.js"></script>
 </body>
 </html>
+
+<style>
+.theme-preset:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 5px 20px rgba(255, 255, 255, 0.3);
+}
+
+.theme-preset:active {
+    transform: scale(1.05) !important;
+}
+</style>
