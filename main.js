@@ -2111,8 +2111,13 @@ async function loadTournamentSettings() {
     const showBiggestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`);
     const showSmallestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`);
     
-    document.getElementById('show-biggest-fish').checked = showBiggestFish === null ? true : showBiggestFish === 'true';
-    document.getElementById('show-smallest-fish').checked = showSmallestFish === null ? true : showSmallestFish === 'true';
+    CONFIG.show_biggest_fish = showBiggestFish === null ? true : showBiggestFish === 'true';
+    CONFIG.show_smallest_fish = showSmallestFish === null ? true : showSmallestFish === 'true';
+    
+    document.getElementById('show-biggest-fish').checked = CONFIG.show_biggest_fish;
+    document.getElementById('show-smallest-fish').checked = CONFIG.show_smallest_fish;
+    
+    console.log('🏆 特別賞設定:', { show_biggest_fish: CONFIG.show_biggest_fish, show_smallest_fish: CONFIG.show_smallest_fish });
     
     // 初期選択肢を設定
     updateSortOptions();
@@ -2274,6 +2279,8 @@ window.updateTournamentSettings = async function() {
     
     // CONFIGを更新
     CONFIG = updatedConfig;
+    CONFIG.show_biggest_fish = showBiggestFish;
+    CONFIG.show_smallest_fish = showSmallestFish;
     console.log('✅ 再取得後のCONFIG:', CONFIG);
     
     showToast('✅ 設定を保存しました');
@@ -2556,13 +2563,25 @@ window.exportResults = async function() {
         
         // ===== 特別賞 =====
         csv += '【特別賞】\n';
+        console.log('🏆 特別賞チェック - biggestCatch:', biggestCatch);
+        console.log('🏆 特別賞チェック - smallestCatch:', smallestCatch);
+        console.log('🏆 特別賞チェック - CONFIG.show_biggest_fish:', CONFIG.show_biggest_fish);
+        console.log('🏆 特別賞チェック - CONFIG.show_smallest_fish:', CONFIG.show_smallest_fish);
+        
         if (biggestCatch && CONFIG.show_biggest_fish) {
             const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
             csv += `大物賞,${biggestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${biggestCatch.length}cm,${biggestCatch.weight || 0}g\n`;
+            console.log('✅ 大物賞を追加しました');
+        } else {
+            console.log('⚠️ 大物賞をスキップ:', { biggestCatch: !!biggestCatch, show_biggest_fish: CONFIG.show_biggest_fish });
         }
+        
         if (smallestCatch && CONFIG.show_smallest_fish) {
             const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
             csv += `最小寸賞,${smallestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${smallestCatch.length}cm,${smallestCatch.weight || 0}g\n`;
+            console.log('✅ 最小寸賞を追加しました');
+        } else {
+            console.log('⚠️ 最小寸賞をスキップ:', { smallestCatch: !!smallestCatch, show_smallest_fish: CONFIG.show_smallest_fish });
         }
         csv += '\n';
         
@@ -2709,11 +2728,15 @@ window.exportPDF = async function() {
         `;
         
         // 特別賞を追加
+        console.log('🏆 PDF特別賞チェック - CONFIG.show_biggest_fish:', CONFIG.show_biggest_fish);
+        console.log('🏆 PDF特別賞チェック - CONFIG.show_smallest_fish:', CONFIG.show_smallest_fish);
+        
         if (CONFIG.show_biggest_fish || CONFIG.show_smallest_fish) {
             const prizesHtml = [];
             
             if (CONFIG.show_biggest_fish) {
                 const biggestCatch = await getBiggestCatch();
+                console.log('🏆 PDF大物賞データ:', biggestCatch);
                 if (biggestCatch) {
                     const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
                     prizesHtml.push(`
@@ -2724,11 +2747,13 @@ window.exportPDF = async function() {
                             </span>
                         </div>
                     `);
+                    console.log('✅ PDF大物賞を追加しました');
                 }
             }
             
             if (CONFIG.show_smallest_fish) {
                 const smallestCatch = await getSmallestCatch();
+                console.log('🏆 PDF最小寸賞データ:', smallestCatch);
                 if (smallestCatch) {
                     const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
                     prizesHtml.push(`
@@ -2739,6 +2764,7 @@ window.exportPDF = async function() {
                             </span>
                         </div>
                     `);
+                    console.log('✅ PDF最小寸賞を追加しました');
                 }
             }
             
@@ -2749,7 +2775,11 @@ window.exportPDF = async function() {
                         ${prizesHtml.join('')}
                     </div>
                 `;
+            } else {
+                console.log('⚠️ PDF特別賞がありません');
             }
+        } else {
+            console.log('⚠️ PDF特別賞の表示設定がOFFです');
         }
         
         // 全釣果データを追加
