@@ -337,11 +337,11 @@ window.deleteCatch = async function(id) {
     
     if (error) {
         console.error('❌ 削除エラー:', error);
-        showToast('削除に失敗しました', true);
+        showToast('❌ 削除に失敗しました', true);
         return;
     }
     
-    showToast('削除しました');
+    showToast('✅ 削除しました');
     await loadHistory();
     await loadRanking();
 }
@@ -370,6 +370,12 @@ async function loadRanking() {
         return;
     }
     
+    // 選手データをマップ化
+    const playerMap = {};
+    ALL_PLAYERS.forEach(p => {
+        playerMap[p.zekken] = p;
+    });
+    
     // 選手ごとに集計
     const stats = {};
     catches.forEach(c => {
@@ -386,28 +392,42 @@ async function loadRanking() {
     
     // ランキング配列に変換
     const ranking = Object.values(stats).map(s => {
+        const sortedLengths = [...s.lengths].sort((a, b) => b - a);
         const sortedWeights = [...s.weights].sort((a, b) => b - a);
         const limitCount = CONFIG.limit_count || 999;
         const limitWeight = sortedWeights.slice(0, limitCount).reduce((sum, w) => sum + w, 0);
+        const limitTotalLen = sortedLengths.slice(0, limitCount).reduce((sum, l) => sum + l, 0);
         
         return {
             zekken: s.zekken,
             count: s.lengths.length,
             max_len: Math.max(...s.lengths),
+            max_weight: Math.max(...s.weights),
+            one_max_len: Math.max(...s.lengths),
+            one_max_weight: Math.max(...s.weights),
             total_weight: s.weights.reduce((sum, w) => sum + w, 0),
-            limit_weight: limitWeight
+            total_count: s.lengths.length,
+            limit_weight: limitWeight,
+            limit_total_len: limitTotalLen
         };
     });
     
-    // ソート
-    const sort1 = CONFIG.sort1 || 'max_len';
-    const sort2 = CONFIG.sort2 || 'limit_weight';
-    const sort3 = CONFIG.sort3 || 'count';
+    // ソート（rule_typeが主ソート）
+    const ruleType = CONFIG.rule_type || 'max_len';
+    const sort1 = CONFIG.sort1 || null;
+    const sort2 = CONFIG.sort2 || null;
+    const sort3 = CONFIG.sort3 || null;
     
     ranking.sort((a, b) => {
-        if (a[sort1] !== b[sort1]) return b[sort1] - a[sort1];
-        if (a[sort2] !== b[sort2]) return b[sort2] - a[sort2];
-        return b[sort3] - a[sort3];
+        // 大会ルールで比較
+        if (a[ruleType] !== b[ruleType]) return b[ruleType] - a[ruleType];
+        // 第1優先
+        if (sort1 && a[sort1] !== b[sort1]) return b[sort1] - a[sort1];
+        // 第2優先
+        if (sort2 && a[sort2] !== b[sort2]) return b[sort2] - a[sort2];
+        // 第3優先
+        if (sort3 && a[sort3] !== b[sort3]) return b[sort3] - a[sort3];
+        return 0;
     });
     
     console.log('✅ ランキング計算完了:', ranking.length, '人');
@@ -416,29 +436,57 @@ async function loadRanking() {
     const container = document.getElementById('ranking-list');
     container.innerHTML = ranking.map((r, index) => {
         const isTop3 = index < 3;
+        const player = playerMap[r.zekken] || {};
+        const playerName = player.name || '未登録';
+        const playerClub = player.club || '';
+        
+        // 表示する値を決定
+        const ruleValue = formatValue(ruleType, r[ruleType]);
+        const sort1Value = sort1 ? formatValue(sort1, r[sort1]) : null;
+        const sort2Value = sort2 ? formatValue(sort2, r[sort2]) : null;
+        
         return `
             <div class="ranking-item ${isTop3 ? 'top3' : ''}">
                 <div class="ranking-header">
                     <div style="font-size: 28px; font-weight: bold;">${index + 1}位</div>
-                    <div style="font-size: 24px; font-weight: bold;">${r.zekken}番</div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 14px; opacity: 0.8;">${playerClub}</div>` : ''}
+                    </div>
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label">最大</div>
-                        <div class="stat-value" style="color: #4CAF50;">${r.max_len}cm</div>
+                        <div class="stat-label">${SORT_OPTIONS[ruleType]}</div>
+                        <div class="stat-value" style="color: #FFD700;">${ruleValue}</div>
                     </div>
+                    ${sort1Value ? `
                     <div class="stat">
-                        <div class="stat-label">匹数</div>
-                        <div class="stat-value" style="color: #2196F3;">${r.count}匹</div>
+                        <div class="stat-label">${SORT_OPTIONS[sort1]}</div>
+                        <div class="stat-value" style="color: #4CAF50;">${sort1Value}</div>
                     </div>
+                    ` : ''}
+                    ${sort2Value ? `
                     <div class="stat">
-                        <div class="stat-label">重量</div>
-                        <div class="stat-value" style="color: #FF9800;">${r.limit_weight}g</div>
+                        <div class="stat-label">${SORT_OPTIONS[sort2]}</div>
+                        <div class="stat-value" style="color: #2196F3;">${sort2Value}</div>
                     </div>
+                    ` : ''}
                 </div>
             </div>
         `;
     }).join('');
+}
+
+// 値のフォーマット
+function formatValue(key, value) {
+    if (key.includes('len')) {
+        return `${value.toFixed(1)}cm`;
+    } else if (key.includes('weight')) {
+        return `${Math.round(value)}g`;
+    } else if (key === 'total_count') {
+        return `${value}枚`;
+    }
+    return value;
 }
 
 // ===================================
@@ -579,11 +627,11 @@ window.deletePlayer = async function(zekken) {
     
     if (error) {
         console.error('選手削除エラー:', error);
-        showToast('削除に失敗しました', true);
+        showToast('❌ 削除に失敗しました', true);
         return;
     }
     
-    showToast('削除しました');
+    showToast('✅ 削除しました');
     await loadPlayers();
     await loadPlayerList();
 }
@@ -594,11 +642,14 @@ window.deletePlayer = async function(zekken) {
 
 // ソート選択肢の定義
 const SORT_OPTIONS = {
-    'max_len': '最大長寸',
-    'max_weight': '最大重量',
-    'total_count': '匹数総合計',
+    'max_len': '長寸',
+    'max_weight': '重量',
+    'total_count': '枚数',
     'total_weight': '総重量',
-    'limit_weight': 'リミット合計重量'
+    'limit_weight': 'リミット合計重量',
+    'one_max_len': '1匹最大長寸',
+    'one_max_weight': '1匹最大重量',
+    'limit_total_len': 'リミット合計長寸'
 };
 
 // ゼッケン番号の重複チェック
@@ -617,11 +668,14 @@ window.checkZekkenDuplicate = function(zekken) {
     
     if (isDuplicate) {
         warning.textContent = `⚠️ ${zekkenNum}番は既に登録されています`;
+        warning.style.color = '#ff6b6b';
+        warning.style.fontWeight = 'bold';
         warning.style.display = 'block';
         addBtn.disabled = true;
     } else {
         warning.textContent = `✅ ${zekkenNum}番は利用可能です`;
         warning.style.color = '#4CAF50';
+        warning.style.fontWeight = 'normal';
         warning.style.display = 'block';
         addBtn.disabled = false;
     }
@@ -651,8 +705,17 @@ function updateSelectOptions(selectId, allUsed, excludeList) {
     // オプションをクリア
     select.innerHTML = '<option value="">選択しない</option>';
     
+    // 判定順位用の選択肢（大会ルールには含まない項目）
+    const judgeOptions = {
+        'one_max_len': '1匹最大長寸',
+        'one_max_weight': '1匹最大重量',
+        'limit_total_len': 'リミット合計長寸',
+        'limit_weight': 'リミット合計重量',
+        'total_count': '枚数合計'
+    };
+    
     // 利用可能なオプションを追加
-    for (const [value, label] of Object.entries(SORT_OPTIONS)) {
+    for (const [value, label] of Object.entries(judgeOptions)) {
         // 除外リストに含まれていなければ追加
         if (!excludeList.includes(value) || value === currentValue) {
             const option = document.createElement('option');
