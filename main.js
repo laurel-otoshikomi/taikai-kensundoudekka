@@ -2561,146 +2561,171 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===================================
-// PDF出力機能
+// PDF出力機能（日本語対応版）
 // ===================================
 window.exportPDF = async function() {
     try {
         showToast('📄 PDF生成中...');
         
-        // jsPDFが読み込まれているか確認
-        if (typeof window.jspdf === 'undefined') {
+        // 必要なライブラリが読み込まれているか確認
+        if (typeof window.jspdf === 'undefined' || typeof html2canvas === 'undefined') {
             showToast('❌ PDFライブラリが読み込まれていません', true);
             return;
         }
         
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        });
-        
-        // ページ設定
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 15;
-        let yPos = margin;
-        
-        // タイトル（大きく）
-        doc.setFontSize(20);
-        const title = CONFIG.name || '釣り大会';
-        const titleWidth = doc.getTextWidth(title);
-        doc.text(title, (pageWidth - titleWidth) / 2, yPos);
-        yPos += 10;
-        
-        // 日付
-        doc.setFontSize(10);
-        const date = new Date().toLocaleDateString('ja-JP');
-        const dateText = `作成日: ${date}`;
-        const dateWidth = doc.getTextWidth(dateText);
-        doc.text(dateText, pageWidth - margin - dateWidth, yPos);
-        yPos += 10;
-        
-        // ルール情報
-        doc.setFontSize(11);
-        const ruleTypes = {
-            'limit_total_len': 'リミット合計長寸',
-            'limit_weight': 'リミット合計重量',
-            'total_count': '総枚数',
-            'total_weight': '総重量'
-        };
-        const ruleText = `ルール: ${ruleTypes[CONFIG.rule_type] || 'リミット合計長寸'}`;
-        if (CONFIG.limit_count > 0) {
-            doc.text(ruleText + ` (リミット${CONFIG.limit_count}匹)`, margin, yPos);
-        } else {
-            doc.text(ruleText + ` (無制限)`, margin, yPos);
-        }
-        yPos += 8;
-        
-        // 区切り線
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 8;
         
         // データ取得
         const ranking = FULL_RANKING || [];
         const players = ALL_PLAYERS || [];
         
         if (ranking.length === 0) {
-            doc.setFontSize(12);
-            doc.text('まだ釣果データがありません', margin, yPos);
-        } else {
-            // テーブルデータ準備
-            const tableData = ranking.map((r, index) => {
-                const player = players.find(p => p.zekken === r.zekken) || {};
-                const ruleValue = formatValue(CONFIG.rule_type, r[CONFIG.rule_type]);
-                
-                return [
-                    `${index + 1}位`,
-                    `${r.zekken}番`,
-                    player.name || '未登録',
-                    player.club || '-',
-                    ruleValue
-                ];
-            });
+            showToast('❌ まだ釣果データがありません', true);
+            return;
+        }
+        
+        // ルール情報
+        const ruleTypes = {
+            'limit_total_len': 'リミット合計長寸',
+            'limit_weight': 'リミット合計重量',
+            'total_count': '総枚数',
+            'total_weight': '総重量'
+        };
+        const ruleText = ruleTypes[CONFIG.rule_type] || 'リミット合計長寸';
+        const limitText = CONFIG.limit_count > 0 ? `(リミット${CONFIG.limit_count}匹)` : '(無制限)';
+        
+        // HTML要素を動的に作成
+        const container = document.createElement('div');
+        container.style.cssText = `
+            position: absolute;
+            left: -9999px;
+            width: 800px;
+            background: white;
+            padding: 40px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+            color: #333;
+        `;
+        
+        // ヘッダー
+        const title = CONFIG.name || '釣り大会';
+        const date = new Date().toLocaleDateString('ja-JP');
+        
+        container.innerHTML = `
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="font-size: 32px; margin: 0 0 10px 0; color: #667eea;">${title}</h1>
+                <p style="font-size: 14px; color: #666; margin: 5px 0;">作成日: ${date}</p>
+                <p style="font-size: 14px; color: #666; margin: 5px 0;">ルール: ${ruleText} ${limitText}</p>
+            </div>
             
-            // AutoTableでテーブル作成
-            doc.autoTable({
-                startY: yPos,
-                head: [['順位', 'ゼッケン', '名前', '所属', CONFIG.limit_count > 0 ? `${ruleTypes[CONFIG.rule_type]}(${CONFIG.limit_count}匹)` : ruleTypes[CONFIG.rule_type]]],
-                body: tableData,
-                styles: {
-                    font: 'helvetica',
-                    fontSize: 10,
-                    cellPadding: 3
-                },
-                headStyles: {
-                    fillColor: [102, 126, 234],
-                    textColor: 255,
-                    fontStyle: 'bold'
-                },
-                alternateRowStyles: {
-                    fillColor: [245, 245, 245]
-                },
-                margin: { left: margin, right: margin }
-            });
+            <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 12px 8px; text-align: center; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">順位</th>
+                            <th style="padding: 12px 8px; text-align: center; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">ゼッケン</th>
+                            <th style="padding: 12px 8px; text-align: left; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">名前</th>
+                            <th style="padding: 12px 8px; text-align: left; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">所属</th>
+                            <th style="padding: 12px 8px; text-align: center; font-size: 14px; font-weight: bold;">${ruleText}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ranking.map((r, index) => {
+                            const player = players.find(p => p.zekken === r.zekken) || {};
+                            const ruleValue = formatValue(CONFIG.rule_type, r[CONFIG.rule_type]);
+                            const bgColor = index % 2 === 0 ? '#f9f9f9' : 'white';
+                            
+                            return `
+                                <tr style="background: ${bgColor};">
+                                    <td style="padding: 10px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${index + 1}位</td>
+                                    <td style="padding: 10px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${r.zekken}番</td>
+                                    <td style="padding: 10px 8px; text-align: left; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; font-weight: bold;">${player.name || '未登録'}</td>
+                                    <td style="padding: 10px 8px; text-align: left; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${player.club || '-'}</td>
+                                    <td style="padding: 10px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; font-weight: bold; color: #667eea;">${ruleValue}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        // 特別賞を追加
+        if (CONFIG.show_biggest_fish || CONFIG.show_smallest_fish) {
+            const prizesHtml = [];
             
-            yPos = doc.lastAutoTable.finalY + 10;
-            
-            // 特別賞を追加
-            if (CONFIG.show_biggest_fish || CONFIG.show_smallest_fish) {
-                // 改ページチェック
-                if (yPos > pageHeight - 40) {
-                    doc.addPage();
-                    yPos = margin;
-                }
-                
-                doc.setFontSize(14);
-                doc.text('特別賞', margin, yPos);
-                yPos += 8;
-                
-                // 大物賞
-                if (CONFIG.show_biggest_fish) {
-                    const biggestCatch = await getBiggestCatch();
-                    if (biggestCatch) {
-                        const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
-                        doc.setFontSize(11);
-                        doc.text(`🐟 大物賞: ${player.name || '未登録'} (${biggestCatch.zekken}番) - ${biggestCatch.length}cm`, margin + 5, yPos);
-                        yPos += 6;
-                    }
-                }
-                
-                // 最小寸賞
-                if (CONFIG.show_smallest_fish) {
-                    const smallestCatch = await getSmallestCatch();
-                    if (smallestCatch) {
-                        const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
-                        doc.setFontSize(11);
-                        doc.text(`🎣 最小寸賞: ${player.name || '未登録'} (${smallestCatch.zekken}番) - ${smallestCatch.length}cm`, margin + 5, yPos);
-                        yPos += 6;
-                    }
+            if (CONFIG.show_biggest_fish) {
+                const biggestCatch = await getBiggestCatch();
+                if (biggestCatch) {
+                    const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
+                    prizesHtml.push(`
+                        <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                            <strong style="color: #667eea; font-size: 16px;">🐟 大物賞</strong><br>
+                            <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
+                                ${player.name || '未登録'} (${biggestCatch.zekken}番) - ${biggestCatch.length}cm
+                            </span>
+                        </div>
+                    `);
                 }
             }
+            
+            if (CONFIG.show_smallest_fish) {
+                const smallestCatch = await getSmallestCatch();
+                if (smallestCatch) {
+                    const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
+                    prizesHtml.push(`
+                        <div style="background: rgba(255, 183, 77, 0.1); padding: 15px; border-radius: 8px;">
+                            <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞</strong><br>
+                            <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
+                                ${player.name || '未登録'} (${smallestCatch.zekken}番) - ${smallestCatch.length}cm
+                            </span>
+                        </div>
+                    `);
+                }
+            }
+            
+            if (prizesHtml.length > 0) {
+                container.innerHTML += `
+                    <div style="margin-top: 30px;">
+                        <h2 style="font-size: 20px; margin-bottom: 15px; color: #333;">🏆 特別賞</h2>
+                        ${prizesHtml.join('')}
+                    </div>
+                `;
+            }
+        }
+        
+        document.body.appendChild(container);
+        
+        // Canvas化
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+        
+        // コンテナを削除
+        document.body.removeChild(container);
+        
+        // PDFに変換
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 210; // A4の幅（mm）
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        const doc = new jsPDF({
+            orientation: imgHeight > 297 ? 'portrait' : 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        // 画像を追加（複数ページ対応）
+        let position = 0;
+        const pageHeight = 297; // A4の高さ（mm）
+        
+        while (position < imgHeight) {
+            if (position > 0) {
+                doc.addPage();
+            }
+            doc.addImage(imgData, 'PNG', 0, -position, imgWidth, imgHeight);
+            position += pageHeight;
         }
         
         // ファイル名生成
