@@ -395,7 +395,10 @@ window.searchPlayer = function() {
     const resultCount = document.getElementById('search-result-count');
     const select = document.getElementById('player-select');
     
-    const searchQuery = searchInput.value.trim().toLowerCase();
+    const searchQuery = searchInput.value.trim();
+    
+    console.log('🔍 検索クエリ:', searchQuery);
+    console.log('🔍 選手データ数:', ALL_PLAYERS.length);
     
     // クリアボタンの表示/非表示
     clearBtn.style.display = searchQuery ? 'block' : 'none';
@@ -413,25 +416,53 @@ window.searchPlayer = function() {
         return;
     }
     
-    // 検索実行
+    // 検索実行（大文字小文字を区別しない、日本語対応）
     const filteredPlayers = ALL_PLAYERS.filter(player => {
         // ゼッケン番号で検索（完全一致）
         if (player.zekken.toString() === searchQuery) {
+            console.log('✅ ゼッケン一致:', player.zekken);
             return true;
         }
         
-        // 選手名で検索（部分一致）
-        if (player.name && player.name.toLowerCase().includes(searchQuery)) {
-            return true;
+        // 選手名で検索（部分一致、大文字小文字を区別しない）
+        if (player.name) {
+            const playerNameLower = player.name.toLowerCase();
+            const queryLower = searchQuery.toLowerCase();
+            
+            // 日本語の場合はそのまま比較
+            if (player.name.includes(searchQuery)) {
+                console.log('✅ 名前一致（日本語）:', player.name, '検索:', searchQuery);
+                return true;
+            }
+            
+            // 英語の場合は小文字変換して比較
+            if (playerNameLower.includes(queryLower)) {
+                console.log('✅ 名前一致（英語）:', player.name, '検索:', searchQuery);
+                return true;
+            }
         }
         
         // 所属で検索（部分一致）
-        if (player.club && player.club.toLowerCase().includes(searchQuery)) {
-            return true;
+        if (player.club) {
+            // 日本語の場合はそのまま比較
+            if (player.club.includes(searchQuery)) {
+                console.log('✅ 所属一致（日本語）:', player.club, '検索:', searchQuery);
+                return true;
+            }
+            
+            // 英語の場合は小文字変換して比較
+            const clubLower = player.club.toLowerCase();
+            const queryLower = searchQuery.toLowerCase();
+            if (clubLower.includes(queryLower)) {
+                console.log('✅ 所属一致（英語）:', player.club, '検索:', searchQuery);
+                return true;
+            }
         }
         
         return false;
     });
+    
+    console.log('🔍 検索結果:', filteredPlayers.length, '件');
     
     // 検索結果を表示
     select.innerHTML = '<option value="">選手を選択してください</option>';
