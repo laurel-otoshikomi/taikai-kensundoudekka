@@ -657,18 +657,18 @@ function renderBiggestFish(ranking, playerMap) {
         const playerClub = player.club || '';
         
         return `
-            <div class="ranking-item ${index === 0 ? 'top3' : ''}">
+            <div class="ranking-item ${index === 0 ? 'top3' : ''}" style="padding: 8px; margin-bottom: 8px;">
                 <div class="ranking-header">
-                    <div style="font-size: 24px; font-weight: bold;">${index + 1}位</div>
+                    <div style="font-size: 16px; font-weight: bold;">${index + 1}位</div>
                     <div>
-                        <div style="font-size: 20px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
-                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8;">${playerClub}</div>` : ''}
+                        <div style="font-size: 14px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 10px; opacity: 0.8;">${playerClub}</div>` : ''}
                     </div>
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label">最大長寸</div>
-                        <div class="stat-value" style="color: #FFD700;">${r.max_len.toFixed(1)}cm</div>
+                        <div class="stat-label" style="font-size: 10px;">最大長寸</div>
+                        <div class="stat-value" style="color: #FFD700; font-size: 16px;">${r.max_len.toFixed(1)}cm</div>
                     </div>
                 </div>
             </div>
@@ -697,18 +697,18 @@ function renderSmallestFish(ranking, playerMap) {
         const playerClub = player.club || '';
         
         return `
-            <div class="ranking-item ${index === 0 ? 'top3' : ''}">
+            <div class="ranking-item ${index === 0 ? 'top3' : ''}" style="padding: 8px; margin-bottom: 8px;">
                 <div class="ranking-header">
-                    <div style="font-size: 24px; font-weight: bold;">${index + 1}位</div>
+                    <div style="font-size: 16px; font-weight: bold;">${index + 1}位</div>
                     <div>
-                        <div style="font-size: 20px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
-                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8;">${playerClub}</div>` : ''}
+                        <div style="font-size: 14px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 10px; opacity: 0.8;">${playerClub}</div>` : ''}
                     </div>
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label">最小長寸</div>
-                        <div class="stat-value" style="color: #4CAF50;">${r.min_len.toFixed(1)}cm</div>
+                        <div class="stat-label" style="font-size: 10px;">最小長寸</div>
+                        <div class="stat-value" style="color: #4CAF50; font-size: 16px;">${r.min_len.toFixed(1)}cm</div>
                     </div>
                 </div>
             </div>
