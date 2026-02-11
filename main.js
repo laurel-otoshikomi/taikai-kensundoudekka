@@ -389,6 +389,30 @@ async function loadPlayers() {
 // ===================================
 // 選手検索機能
 // ===================================
+
+// ひらがな⇔カタカナ変換ヘルパー関数
+function toHiragana(str) {
+    return str.replace(/[\u30A1-\u30F6]/g, function(match) {
+        const chr = match.charCodeAt(0) - 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
+function toKatakana(str) {
+    return str.replace(/[\u3041-\u3096]/g, function(match) {
+        const chr = match.charCodeAt(0) + 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
+// テキストの正規化（ひらがな・カタカナの両方で検索できるように）
+function normalizeText(text) {
+    if (!text) return '';
+    const hiragana = toHiragana(text);
+    const katakana = toKatakana(text);
+    return { original: text, hiragana, katakana };
+}
+
 window.searchPlayer = function() {
     const searchInput = document.getElementById('player-search');
     const clearBtn = document.getElementById('clear-search-btn');
@@ -416,7 +440,9 @@ window.searchPlayer = function() {
         return;
     }
     
-    // 検索実行（大文字小文字を区別しない、日本語対応）
+    // 検索実行（ひらがな⇔カタカナ変換対応）
+    const normalizedQuery = normalizeText(searchQuery);
+    
     const filteredPlayers = ALL_PLAYERS.filter(player => {
         // ゼッケン番号で検索（完全一致）
         if (player.zekken.toString() === searchQuery) {
@@ -424,29 +450,56 @@ window.searchPlayer = function() {
             return true;
         }
         
-        // 選手名で検索（部分一致、大文字小文字を区別しない）
+        // 選手名で検索（部分一致、ひらがな⇔カタカナ対応）
         if (player.name) {
-            const playerNameLower = player.name.toLowerCase();
-            const queryLower = searchQuery.toLowerCase();
+            const normalizedName = normalizeText(player.name);
             
-            // 日本語の場合はそのまま比較
+            // 元の文字列で検索
             if (player.name.includes(searchQuery)) {
-                console.log('✅ 名前一致（日本語）:', player.name, '検索:', searchQuery);
+                console.log('✅ 名前一致（完全）:', player.name, '検索:', searchQuery);
+                return true;
+            }
+            
+            // ひらがな変換して検索
+            if (normalizedName.hiragana.includes(normalizedQuery.hiragana)) {
+                console.log('✅ 名前一致（ひらがな）:', player.name, '検索:', searchQuery);
+                return true;
+            }
+            
+            // カタカナ変換して検索
+            if (normalizedName.katakana.includes(normalizedQuery.katakana)) {
+                console.log('✅ 名前一致（カタカナ）:', player.name, '検索:', searchQuery);
                 return true;
             }
             
             // 英語の場合は小文字変換して比較
+            const playerNameLower = player.name.toLowerCase();
+            const queryLower = searchQuery.toLowerCase();
             if (playerNameLower.includes(queryLower)) {
                 console.log('✅ 名前一致（英語）:', player.name, '検索:', searchQuery);
                 return true;
             }
         }
         
-        // 所属で検索（部分一致）
+        // 所属で検索（部分一致、ひらがな⇔カタカナ対応）
         if (player.club) {
-            // 日本語の場合はそのまま比較
+            const normalizedClub = normalizeText(player.club);
+            
+            // 元の文字列で検索
             if (player.club.includes(searchQuery)) {
-                console.log('✅ 所属一致（日本語）:', player.club, '検索:', searchQuery);
+                console.log('✅ 所属一致（完全）:', player.club, '検索:', searchQuery);
+                return true;
+            }
+            
+            // ひらがな変換して検索
+            if (normalizedClub.hiragana.includes(normalizedQuery.hiragana)) {
+                console.log('✅ 所属一致（ひらがな）:', player.club, '検索:', searchQuery);
+                return true;
+            }
+            
+            // カタカナ変換して検索
+            if (normalizedClub.katakana.includes(normalizedQuery.katakana)) {
+                console.log('✅ 所属一致（カタカナ）:', player.club, '検索:', searchQuery);
                 return true;
             }
             

@@ -333,6 +333,26 @@
                 padding: 8px 12px;
                 font-size: 13px;
             }
+            
+            /* ヘッダーレイアウトをモバイル最適化 */
+            .header > div {
+                padding: 50px 10px 15px !important;
+                min-height: 80px !important;
+            }
+            
+            .header h1 {
+                font-size: 24px !important;
+            }
+            
+            .header p {
+                font-size: 14px !important;
+            }
+            
+            .header .btn-primary,
+            .header .btn-danger {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+            }
         }
     </style>
 </head>
@@ -388,15 +408,18 @@
     <div id="tournament-page" style="display: none;">
         <div class="container">
             <div class="header">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <button class="btn btn-primary" onclick="window.location.href='/'" style="padding: 8px 15px; font-size: 14px;">🏠 トップに戻る</button>
-                        <div>
-                            <h1 id="tournament-name" style="margin: 0;">茅ヶ崎西連合交流会</h1>
-                            <p id="tournament-info" style="margin: 5px 0 0 0;">リミット2匹</p>
-                        </div>
+                <div style="position: relative; padding: 60px 20px 20px; min-height: 100px;">
+                    <!-- トップに戻るボタン（左上） -->
+                    <button class="btn btn-primary" onclick="window.location.href='/'" style="padding: 8px 15px; font-size: 14px; position: absolute; top: 15px; left: 15px;">🏠 トップに戻る</button>
+                    
+                    <!-- 大会名（中央） -->
+                    <div style="text-align: center;">
+                        <h1 id="tournament-name" style="margin: 0; font-size: 36px;">茅ヶ崎西連合交流会</h1>
+                        <p id="tournament-info" style="margin: 5px 0 0 0; font-size: 16px; opacity: 0.9;">リミット2匹</p>
                     </div>
-                    <div id="login-status" style="display: none; text-align: right;">
+                    
+                    <!-- ログインステータス（右上） -->
+                    <div id="login-status" style="display: none; position: absolute; top: 15px; right: 15px; text-align: right;">
                         <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;" id="login-status-text">ログイン中</div>
                         <button class="btn btn-danger" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">ログアウト</button>
                     </div>
