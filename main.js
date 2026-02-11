@@ -2565,23 +2565,23 @@ window.exportResults = async function() {
         csv += '【特別賞】\n';
         console.log('🏆 特別賞チェック - biggestCatch:', biggestCatch);
         console.log('🏆 特別賞チェック - smallestCatch:', smallestCatch);
-        console.log('🏆 特別賞チェック - CONFIG.show_biggest_fish:', CONFIG.show_biggest_fish);
-        console.log('🏆 特別賞チェック - CONFIG.show_smallest_fish:', CONFIG.show_smallest_fish);
+        console.log('🏆 特別賞チェック - CONFIG:', CONFIG);
         
-        if (biggestCatch && CONFIG.show_biggest_fish) {
+        // 特別賞データがあれば常に出力（設定に関わらず）
+        if (biggestCatch) {
             const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
             csv += `大物賞,${biggestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${biggestCatch.length}cm,${biggestCatch.weight || 0}g\n`;
             console.log('✅ 大物賞を追加しました');
         } else {
-            console.log('⚠️ 大物賞をスキップ:', { biggestCatch: !!biggestCatch, show_biggest_fish: CONFIG.show_biggest_fish });
+            console.log('⚠️ 大物賞データなし');
         }
         
-        if (smallestCatch && CONFIG.show_smallest_fish) {
+        if (smallestCatch) {
             const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
             csv += `最小寸賞,${smallestCatch.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${smallestCatch.length}cm,${smallestCatch.weight || 0}g\n`;
             console.log('✅ 最小寸賞を追加しました');
         } else {
-            console.log('⚠️ 最小寸賞をスキップ:', { smallestCatch: !!smallestCatch, show_smallest_fish: CONFIG.show_smallest_fish });
+            console.log('⚠️ 最小寸賞データなし');
         }
         csv += '\n';
         
@@ -2727,59 +2727,48 @@ window.exportPDF = async function() {
             </div>
         `;
         
-        // 特別賞を追加
-        console.log('🏆 PDF特別賞チェック - CONFIG.show_biggest_fish:', CONFIG.show_biggest_fish);
-        console.log('🏆 PDF特別賞チェック - CONFIG.show_smallest_fish:', CONFIG.show_smallest_fish);
+        // 特別賞を追加（データがあれば常に表示）
+        const prizesHtml = [];
         
-        if (CONFIG.show_biggest_fish || CONFIG.show_smallest_fish) {
-            const prizesHtml = [];
-            
-            if (CONFIG.show_biggest_fish) {
-                const biggestCatch = await getBiggestCatch();
-                console.log('🏆 PDF大物賞データ:', biggestCatch);
-                if (biggestCatch) {
-                    const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
-                    prizesHtml.push(`
-                        <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-                            <strong style="color: #667eea; font-size: 16px;">🐟 大物賞</strong><br>
-                            <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
-                                ${player.name || '未登録'} (${biggestCatch.zekken}番) - 長寸: ${biggestCatch.length}cm ${biggestCatch.weight ? `/ 重量: ${biggestCatch.weight}g` : ''}
-                            </span>
-                        </div>
-                    `);
-                    console.log('✅ PDF大物賞を追加しました');
-                }
-            }
-            
-            if (CONFIG.show_smallest_fish) {
-                const smallestCatch = await getSmallestCatch();
-                console.log('🏆 PDF最小寸賞データ:', smallestCatch);
-                if (smallestCatch) {
-                    const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
-                    prizesHtml.push(`
-                        <div style="background: rgba(255, 183, 77, 0.1); padding: 15px; border-radius: 8px;">
-                            <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞</strong><br>
-                            <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
-                                ${player.name || '未登録'} (${smallestCatch.zekken}番) - 長寸: ${smallestCatch.length}cm ${smallestCatch.weight ? `/ 重量: ${smallestCatch.weight}g` : ''}
-                            </span>
-                        </div>
-                    `);
-                    console.log('✅ PDF最小寸賞を追加しました');
-                }
-            }
-            
-            if (prizesHtml.length > 0) {
-                container.innerHTML += `
-                    <div style="margin-top: 30px;">
-                        <h2 style="font-size: 20px; margin-bottom: 15px; color: #333;">🏆 特別賞</h2>
-                        ${prizesHtml.join('')}
-                    </div>
-                `;
-            } else {
-                console.log('⚠️ PDF特別賞がありません');
-            }
+        const biggestCatch = await getBiggestCatch();
+        console.log('🏆 PDF大物賞データ:', biggestCatch);
+        if (biggestCatch) {
+            const player = players.find(p => p.zekken === biggestCatch.zekken) || {};
+            prizesHtml.push(`
+                <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                    <strong style="color: #667eea; font-size: 16px;">🐟 大物賞</strong><br>
+                    <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
+                        ${player.name || '未登録'} (${biggestCatch.zekken}番) - 長寸: ${biggestCatch.length}cm ${biggestCatch.weight ? `/ 重量: ${biggestCatch.weight}g` : ''}
+                    </span>
+                </div>
+            `);
+            console.log('✅ PDF大物賞を追加しました');
+        }
+        
+        const smallestCatch = await getSmallestCatch();
+        console.log('🏆 PDF最小寸賞データ:', smallestCatch);
+        if (smallestCatch) {
+            const player = players.find(p => p.zekken === smallestCatch.zekken) || {};
+            prizesHtml.push(`
+                <div style="background: rgba(255, 183, 77, 0.1); padding: 15px; border-radius: 8px;">
+                    <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞</strong><br>
+                    <span style="font-size: 14px; margin-top: 5px; display: inline-block;">
+                        ${player.name || '未登録'} (${smallestCatch.zekken}番) - 長寸: ${smallestCatch.length}cm ${smallestCatch.weight ? `/ 重量: ${smallestCatch.weight}g` : ''}
+                    </span>
+                </div>
+            `);
+            console.log('✅ PDF最小寸賞を追加しました');
+        }
+        
+        if (prizesHtml.length > 0) {
+            container.innerHTML += `
+                <div style="margin-top: 30px;">
+                    <h2 style="font-size: 20px; margin-bottom: 15px; color: #333;">🏆 特別賞</h2>
+                    ${prizesHtml.join('')}
+                </div>
+            `;
         } else {
-            console.log('⚠️ PDF特別賞の表示設定がOFFです');
+            console.log('⚠️ PDF特別賞データがありません');
         }
         
         // 全釣果データを追加
