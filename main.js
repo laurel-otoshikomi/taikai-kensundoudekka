@@ -2903,17 +2903,33 @@ window.exportPDF = async function() {
     }
 }
 
-// 大物賞データ取得（上位3位まで）
+// 大物賞データ取得（上位3位まで、重複なし）
 async function getBiggestCatches(limit = 3) {
     const { data, error } = await client
         .from('catches')
         .select('*')
         .eq('tournament_id', CURRENT_TOURNAMENT_ID)
         .order('length', { ascending: false })
-        .limit(limit);
+        .order('weight', { ascending: false }); // 同寸なら重量が重い方を上位
     
     if (error || !data || data.length === 0) return [];
-    return data;
+    
+    // 同一人物（同じzekken）の重複を除外
+    const uniqueResults = [];
+    const seenZekkens = new Set();
+    
+    for (const catch_ of data) {
+        if (!seenZekkens.has(catch_.zekken)) {
+            uniqueResults.push(catch_);
+            seenZekkens.add(catch_.zekken);
+            
+            if (uniqueResults.length >= limit) {
+                break;
+            }
+        }
+    }
+    
+    return uniqueResults;
 }
 
 // 大物賞データ取得（1位のみ - 後方互換性）
@@ -2922,17 +2938,33 @@ async function getBiggestCatch() {
     return results.length > 0 ? results[0] : null;
 }
 
-// 最小寸賞データ取得（上位3位まで）
+// 最小寸賞データ取得（上位3位まで、重複なし）
 async function getSmallestCatches(limit = 3) {
     const { data, error } = await client
         .from('catches')
         .select('*')
         .eq('tournament_id', CURRENT_TOURNAMENT_ID)
         .order('length', { ascending: true })
-        .limit(limit);
+        .order('weight', { ascending: true }); // 同寸なら重量が軽い方を上位
     
     if (error || !data || data.length === 0) return [];
-    return data;
+    
+    // 同一人物（同じzekken）の重複を除外
+    const uniqueResults = [];
+    const seenZekkens = new Set();
+    
+    for (const catch_ of data) {
+        if (!seenZekkens.has(catch_.zekken)) {
+            uniqueResults.push(catch_);
+            seenZekkens.add(catch_.zekken);
+            
+            if (uniqueResults.length >= limit) {
+                break;
+            }
+        }
+    }
+    
+    return uniqueResults;
 }
 
 // 最小寸賞データ取得（1位のみ - 後方互換性）
