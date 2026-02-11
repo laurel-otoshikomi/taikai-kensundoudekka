@@ -535,6 +535,8 @@ window.editPlayer = async function(zekken) {
         return;
     }
     
+    console.log('📝 編集前の選手情報:', player);
+    
     // 編集フォームに現在の値をセット
     const newName = prompt(`${zekken}番の新しい名前を入力してください`, player.name);
     if (newName === null) return; // キャンセル
@@ -547,24 +549,32 @@ window.editPlayer = async function(zekken) {
         return;
     }
     
-    const { error } = await client
+    console.log('📝 更新データ:', { name: newName.trim(), club: newClub.trim() });
+    
+    const { data, error } = await client
         .from('players')
         .update({
             name: newName.trim(),
             club: newClub.trim()
         })
         .eq('tournament_id', CURRENT_TOURNAMENT_ID)
-        .eq('zekken', zekken);
+        .eq('zekken', zekken)
+        .select();
     
     if (error) {
-        console.error('選手編集エラー:', error);
-        showToast('編集に失敗しました', true);
+        console.error('❌ 選手編集エラー:', error);
+        showToast('❌ 編集に失敗しました', true);
         return;
     }
     
+    console.log('✅ 更新後のデータ:', data);
     showToast('✅ 選手情報を更新しました');
+    
+    // データを再読み込み
     await loadPlayers();
     await loadPlayerList();
+    
+    console.log('✅ 再読み込み後のALL_PLAYERS:', ALL_PLAYERS.find(p => p.zekken === zekken));
 }
 
 window.addPlayer = async function() {
