@@ -1125,52 +1125,229 @@ window.editPlayer = async function(zekken) {
     
     console.log('📝 編集前の選手情報:', player);
     
-    // 編集フォームに現在の値をセット
-    const newName = prompt(`${zekken}番の新しい名前を入力してください`, player.name);
-    if (newName === null) return; // キャンセル
+    // カスタムダイアログを表示
+    showEditPlayerDialog(player, async (updatedData) => {
+        if (!updatedData) return; // キャンセル
+        
+        console.log('📝 更新データ:', updatedData);
+        console.log('📝 更新条件:', { tournament_id: CURRENT_TOURNAMENT_ID, zekken: zekken });
+        
+        const { data, error } = await client
+            .from('players')
+            .update({
+                name: updatedData.name,
+                club: updatedData.club,
+                reading: updatedData.reading
+            })
+            .eq('tournament_id', CURRENT_TOURNAMENT_ID)
+            .eq('zekken', zekken)
+            .select();
+        
+        if (error) {
+            console.error('❌ 選手編集エラー:', error);
+            console.error('❌ エラー詳細:', JSON.stringify(error, null, 2));
+            showToast(`❌ 編集に失敗しました: ${error.message || error.code || '不明なエラー'}`, true);
+            return;
+        }
+        
+        if (!data || data.length === 0) {
+            console.error('❌ 更新対象が見つかりませんでした');
+            showToast('❌ 更新対象が見つかりませんでした', true);
+            return;
+        }
+        
+        console.log('✅ 更新後のデータ:', data);
+        showToast('✅ 選手情報を更新しました');
+        
+        // データを再読み込み
+        await loadPlayers();
+        await loadPlayerList();
+        
+        console.log('✅ 再読み込み後のALL_PLAYERS:', ALL_PLAYERS.find(p => p.zekken === zekken));
+    });
+}
+
+// カスタム編集ダイアログを表示
+function showEditPlayerDialog(player, callback) {
+    // ダイアログHTML
+    const dialogHtml = `
+        <div id="edit-player-dialog" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        ">
+            <div style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 30px;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                max-width: 500px;
+                width: 90%;
+                animation: slideIn 0.3s ease-out;
+            ">
+                <h2 style="margin-bottom: 20px; color: white; font-size: 24px; text-align: center;">
+                    📝 ${player.zekken}番 選手編集
+                </h2>
+                
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: white; margin-bottom: 5px; font-weight: bold;">名前 <span style="color: #ff6b6b;">*</span></label>
+                        <input type="text" id="edit-name-input" value="${player.name}" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 8px;
+                            background: rgba(255, 255, 255, 0.9);
+                            font-size: 16px;
+                            box-sizing: border-box;
+                        ">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: white; margin-bottom: 5px; font-weight: bold;">読み仮名（ひらがな）</label>
+                        <input type="text" id="edit-reading-input" value="${player.reading || ''}" placeholder="例: やまだたろう" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 8px;
+                            background: rgba(255, 255, 255, 0.9);
+                            font-size: 16px;
+                            box-sizing: border-box;
+                        ">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: white; margin-bottom: 5px; font-weight: bold;">所属</label>
+                        <input type="text" id="edit-club-input" value="${player.club || ''}" placeholder="例: Aチーム" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 8px;
+                            background: rgba(255, 255, 255, 0.9);
+                            font-size: 16px;
+                            box-sizing: border-box;
+                        ">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="edit-cancel-btn" style="
+                        padding: 12px 30px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.5);
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                    ">キャンセル</button>
+                    
+                    <button id="edit-ok-btn" style="
+                        padding: 12px 40px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.8);
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                    ">✅ 保存</button>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            #edit-cancel-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+            
+            #edit-ok-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            }
+        </style>
+    `;
     
-    const newClub = prompt(`${zekken}番の新しい所属を入力してください（空欄可）`, player.club || '');
-    if (newClub === null) return; // キャンセル
+    // ダイアログを追加
+    document.body.insertAdjacentHTML('beforeend', dialogHtml);
     
-    if (!newName.trim()) {
-        showToast('名前は必須です', true);
-        return;
-    }
+    const dialog = document.getElementById('edit-player-dialog');
+    const nameInput = document.getElementById('edit-name-input');
+    const readingInput = document.getElementById('edit-reading-input');
+    const clubInput = document.getElementById('edit-club-input');
+    const cancelBtn = document.getElementById('edit-cancel-btn');
+    const okBtn = document.getElementById('edit-ok-btn');
     
-    console.log('📝 更新データ:', { name: newName.trim(), club: newClub.trim() });
-    console.log('📝 更新条件:', { tournament_id: CURRENT_TOURNAMENT_ID, zekken: zekken });
+    // キャンセルボタン
+    cancelBtn.onclick = () => {
+        dialog.remove();
+        callback(null);
+    };
     
-    const { data, error } = await client
-        .from('players')
-        .update({
-            name: newName.trim(),
-            club: newClub.trim()
-        })
-        .eq('tournament_id', CURRENT_TOURNAMENT_ID)
-        .eq('zekken', zekken)
-        .select();
+    // 保存ボタン
+    okBtn.onclick = () => {
+        const newName = nameInput.value.trim();
+        const newReading = readingInput.value.trim();
+        const newClub = clubInput.value.trim();
+        
+        if (!newName) {
+            showToast('名前は必須です', true);
+            return;
+        }
+        
+        dialog.remove();
+        callback({
+            name: newName,
+            reading: newReading,
+            club: newClub
+        });
+    };
     
-    if (error) {
-        console.error('❌ 選手編集エラー:', error);
-        console.error('❌ エラー詳細:', JSON.stringify(error, null, 2));
-        showToast(`❌ 編集に失敗しました: ${error.message || error.code || '不明なエラー'}`, true);
-        return;
-    }
+    // Enterキーで保存
+    nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') okBtn.click();
+    });
+    readingInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') okBtn.click();
+    });
+    clubInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') okBtn.click();
+    });
     
-    if (!data || data.length === 0) {
-        console.error('❌ 更新対象が見つかりませんでした');
-        showToast('❌ 更新対象が見つかりませんでした', true);
-        return;
-    }
+    // 背景クリックで閉じる
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+            dialog.remove();
+            callback(null);
+        }
+    });
     
-    console.log('✅ 更新後のデータ:', data);
-    showToast('✅ 選手情報を更新しました');
-    
-    // データを再読み込み
-    await loadPlayers();
-    await loadPlayerList();
-    
-    console.log('✅ 再読み込み後のALL_PLAYERS:', ALL_PLAYERS.find(p => p.zekken === zekken));
+    // 初期フォーカス
+    nameInput.focus();
+    nameInput.select();
 }
 
 window.addPlayer = async function() {
