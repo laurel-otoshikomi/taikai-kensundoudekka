@@ -489,16 +489,17 @@
                     <div class="card">
                         <h2>📝 釣果登録</h2>
                         <div class="input-group">
-                            <label>🔍 選手を検索</label>
+                            <label style="font-size: 16px; font-weight: bold; color: #fff;">🔍 選手を検索</label>
+                            <p style="font-size: 13px; color: #ccc; margin-bottom: 8px;">選手名、ゼッケン番号、所属で検索できます（ひらがな・カタカナ対応）</p>
                             <div style="position: relative;">
-                                <input type="text" id="player-search" placeholder="選手名またはゼッケン番号で検索..." oninput="searchPlayer()">
-                                <button onclick="clearSearch()" id="clear-search-btn" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: white; display: none;">✕</button>
+                                <input type="text" id="player-search" placeholder="例: たなか、田中、5番..." oninput="searchPlayer()" style="border: 2px solid #5c7cfa; box-shadow: 0 2px 8px rgba(92, 124, 250, 0.3);">
+                                <button onclick="clearSearch()" id="clear-search-btn" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255, 100, 100, 0.8); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: white; display: none; font-weight: bold;">✕</button>
                             </div>
-                            <div id="search-result-count" style="font-size: 12px; color: #aaa; margin-top: 5px;"></div>
+                            <div id="search-result-count" style="font-size: 13px; color: #51cf66; margin-top: 8px; font-weight: bold;"></div>
                         </div>
                         <div class="input-group">
-                            <label>選手選択</label>
-                            <select id="player-select">
+                            <label style="font-size: 16px; font-weight: bold; color: #fff;">選手選択</label>
+                            <select id="player-select" style="border: 2px solid #aaa;">
                                 <option value="">選手を選択してください</option>
                             </select>
                         </div>
