@@ -6,6 +6,9 @@
     <title>釣果管理システム</title>
     <!-- QRCode Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -357,7 +360,7 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-45_0WXDb.js"></script>
+  <script type="module" crossorigin src="/assets/main-DKBmb6aO.js"></script>
 </head>
 <body>
     <!-- トップページ -->
@@ -440,15 +443,25 @@
             <div id="ranking-view" class="view active">
                 <!-- 大会順位 -->
                 <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                         <h2 style="margin: 0;">🏆 大会順位</h2>
-                        <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <!-- リアルタイム更新 -->
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
                                 <input type="checkbox" id="realtime-toggle" checked onchange="toggleRealtimeUpdate()">
                                 <span>リアルタイム更新</span>
                             </label>
+                            <!-- 手動更新ボタン -->
                             <button class="btn btn-primary" id="manual-refresh-btn" onclick="manualRefreshRanking()" style="display: none; padding: 8px 15px; font-size: 14px;">
                                 🔄 更新
+                            </button>
+                            <!-- CSVエクスポート -->
+                            <button class="btn" onclick="exportResults()" style="padding: 8px 15px; font-size: 14px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">
+                                📊 CSV出力
+                            </button>
+                            <!-- PDF出力 -->
+                            <button class="btn" onclick="exportPDF()" style="padding: 8px 15px; font-size: 14px; background: linear-gradient(135deg, #f093fb, #f5576c); border: none; color: white;">
+                                📄 PDF出力
                             </button>
                         </div>
                     </div>
