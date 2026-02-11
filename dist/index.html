@@ -231,7 +231,7 @@
             margin-bottom: 30px;
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-CajX_T0_.js"></script>
+  <script type="module" crossorigin src="/assets/main-CMvmbLd4.js"></script>
 </head>
 <body>
     <!-- トップページ -->
@@ -239,12 +239,43 @@
         <div class="container">
             <div class="top-content">
                 <h1>🎣 釣果管理システム</h1>
+                
+                <!-- 大会参加 -->
                 <div class="card">
+                    <h2>🏁 大会に参加</h2>
                     <div class="input-group">
                         <label>大会IDを入力</label>
                         <input type="text" id="tournament-id-input" placeholder="例: kanren">
                     </div>
                     <button class="btn btn-primary" onclick="enterTournament()">参加する</button>
+                </div>
+                
+                <!-- 大会作成 -->
+                <div class="card">
+                    <h2>➕ 新規大会作成</h2>
+                    <div class="input-group">
+                        <label>大会ID（半角英数字）</label>
+                        <input type="text" id="new-tournament-id" placeholder="例: kanren2024">
+                    </div>
+                    <div class="input-group">
+                        <label>大会名</label>
+                        <input type="text" id="new-tournament-name" placeholder="例: 茅ヶ崎西連合交流会 2024">
+                    </div>
+                    <div class="input-group">
+                        <label>管理者パスワード</label>
+                        <input type="password" id="new-tournament-admin-password" placeholder="管理者用パスワード">
+                    </div>
+                    <div class="input-group">
+                        <label>運営スタッフパスワード（オプション）</label>
+                        <input type="password" id="new-tournament-staff-password" placeholder="スタッフ用パスワード">
+                    </div>
+                    <button class="btn btn-success" onclick="createTournament()">大会を作成</button>
+                </div>
+                
+                <!-- 大会一覧 -->
+                <div class="card">
+                    <h2>📋 大会一覧</h2>
+                    <div id="tournament-list">読み込み中...</div>
                 </div>
             </div>
         </div>
@@ -254,8 +285,16 @@
     <div id="tournament-page" style="display: none;">
         <div class="container">
             <div class="header">
-                <h1 id="tournament-name">茅ヶ崎西連合交流会</h1>
-                <p id="tournament-info">長寸ルール / 総力戦</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1 id="tournament-name" style="margin: 0;">茅ヶ崎西連合交流会</h1>
+                        <p id="tournament-info" style="margin: 5px 0 0 0;">長寸ルール / 総力戦</p>
+                    </div>
+                    <div id="login-status" style="display: none; text-align: right;">
+                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;" id="login-status-text">ログイン中</div>
+                        <button class="btn btn-danger" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">ログアウト</button>
+                    </div>
+                </div>
             </div>
 
             <!-- タブ -->
@@ -268,7 +307,18 @@
             <!-- 順位表 -->
             <div id="ranking-view" class="view active">
                 <div class="card">
-                    <h2>🏆 現在の順位</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">🏆 現在の順位</h2>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+                                <input type="checkbox" id="realtime-toggle" checked onchange="toggleRealtimeUpdate()">
+                                <span>リアルタイム更新</span>
+                            </label>
+                            <button class="btn btn-primary" id="manual-refresh-btn" onclick="manualRefreshRanking()" style="display: none; padding: 8px 15px; font-size: 14px;">
+                                🔄 更新
+                            </button>
+                        </div>
+                    </div>
                     <div id="ranking-list"></div>
                 </div>
             </div>

@@ -16,6 +16,8 @@ let CONFIG = {};
 let CURRENT_TOURNAMENT_ID = null;
 let ALL_PLAYERS = [];
 let ALL_HISTORY = [];
+let REALTIME_ENABLED = true; // リアルタイム更新フラグ
+let REALTIME_SUBSCRIPTION = null; // Supabaseリアルタイム購読
 
 console.log('🎣 システム起動');
 
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 function showTopPage() {
     document.getElementById('top-page').style.display = 'flex';
     document.getElementById('tournament-page').style.display = 'none';
+    loadTournamentList(); // 大会一覧を読み込み
 }
 
 // ===================================
@@ -48,6 +51,101 @@ window.enterTournament = function() {
         return;
     }
     window.location.href = `?id=${id}`;
+}
+
+// 大会一覧を読み込み
+async function loadTournamentList() {
+    const { data, error } = await client
+        .from('tournaments')
+        .select('id, name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+    
+    const listEl = document.getElementById('tournament-list');
+    
+    if (error) {
+        console.error('大会一覧読み込みエラー:', error);
+        listEl.innerHTML = '<div style="color: #e74c3c;">読み込みに失敗しました</div>';
+        return;
+    }
+    
+    if (!data || data.length === 0) {
+        listEl.innerHTML = '<div style="opacity: 0.6;">まだ大会がありません</div>';
+        return;
+    }
+    
+    listEl.innerHTML = data.map(t => `
+        <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-weight: bold; font-size: 16px;">${t.name}</div>
+                <div style="font-size: 12px; opacity: 0.7;">ID: ${t.id}</div>
+            </div>
+            <button class="btn btn-primary" onclick="window.location.href='?id=${t.id}'" style="padding: 8px 15px; font-size: 14px;">参加</button>
+        </div>
+    `).join('');
+}
+
+// 大会を作成
+window.createTournament = async function() {
+    const id = document.getElementById('new-tournament-id').value.trim();
+    const name = document.getElementById('new-tournament-name').value.trim();
+    const adminPassword = document.getElementById('new-tournament-admin-password').value.trim();
+    const staffPassword = document.getElementById('new-tournament-staff-password').value.trim();
+    
+    if (!id || !name || !adminPassword) {
+        showToast('大会ID、大会名、管理者パスワードは必須です', true);
+        return;
+    }
+    
+    // 大会IDの形式チェック（半角英数字のみ）
+    if (!/^[a-zA-Z0-9]+$/.test(id)) {
+        showToast('大会IDは半角英数字のみで入力してください', true);
+        return;
+    }
+    
+    console.log('🆕 大会作成:', { id, name });
+    
+    // 大会を作成
+    const { data, error } = await client
+        .from('tournaments')
+        .insert({
+            id: id,
+            name: name,
+            password: adminPassword,
+            staff_password: staffPassword || null,
+            rule_type: 'limit_total_len',
+            limit_count: 0,
+            sort1: 'one_max_len',
+            sort2: 'one_max_weight',
+            sort3: null
+        })
+        .select();
+    
+    if (error) {
+        console.error('大会作成エラー:', error);
+        if (error.code === '23505') {
+            showToast('この大会IDは既に使用されています', true);
+        } else {
+            showToast('大会の作成に失敗しました', true);
+        }
+        return;
+    }
+    
+    showToast('✅ 大会を作成しました！');
+    
+    // フォームをリセット
+    document.getElementById('new-tournament-id').value = '';
+    document.getElementById('new-tournament-name').value = '';
+    document.getElementById('new-tournament-admin-password').value = '';
+    document.getElementById('new-tournament-staff-password').value = '';
+    
+    // 大会一覧を再読み込み
+    await loadTournamentList();
+    
+    // 作成した大会に参加
+    setTimeout(() => {
+        window.location.href = `?id=${id}`;
+    }, 1500);
 }
 
 // ===================================
@@ -99,16 +197,50 @@ async function openTournament(tournamentId) {
 }
 
 function setupRealtimeSubscription() {
-    client.channel('tournament-updates')
+    // 既存の購読を解除
+    if (REALTIME_SUBSCRIPTION) {
+        REALTIME_SUBSCRIPTION.unsubscribe();
+    }
+    
+    // 新しい購読を作成
+    REALTIME_SUBSCRIPTION = client.channel('tournament-updates')
         .on('postgres_changes', 
             { event: '*', schema: 'public', table: 'catches', filter: `tournament_id=eq.${CURRENT_TOURNAMENT_ID}` },
             () => {
-                console.log('⚡ 釣果更新');
-                loadRanking();
-                if (AUTH_LEVEL > 0) loadHistory();
+                if (REALTIME_ENABLED) {
+                    console.log('⚡ リアルタイム更新');
+                    loadRanking();
+                    if (AUTH_LEVEL > 0) loadHistory();
+                }
             }
         )
         .subscribe();
+    
+    console.log('📡 リアルタイム購読開始');
+}
+
+// リアルタイム更新のON/OFF切り替え
+window.toggleRealtimeUpdate = function() {
+    REALTIME_ENABLED = document.getElementById('realtime-toggle').checked;
+    const refreshBtn = document.getElementById('manual-refresh-btn');
+    
+    if (REALTIME_ENABLED) {
+        refreshBtn.style.display = 'none';
+        showToast('✅ リアルタイム更新: ON');
+        console.log('📡 リアルタイム更新: ON');
+    } else {
+        refreshBtn.style.display = 'inline-block';
+        showToast('⏸️ リアルタイム更新: OFF（手動更新モード）');
+        console.log('⏸️ リアルタイム更新: OFF');
+    }
+}
+
+// 手動更新
+window.manualRefreshRanking = async function() {
+    showToast('🔄 更新中...');
+    await loadRanking();
+    if (AUTH_LEVEL > 0) await loadHistory();
+    showToast('✅ 更新しました');
 }
 
 // ===================================
@@ -168,9 +300,11 @@ window.login = function() {
     if (password === CONFIG.password) {
         AUTH_LEVEL = 2;
         showToast('✅ 管理者としてログイン');
+        updateLoginStatus('管理者');
     } else if (password === CONFIG.staff_password) {
         AUTH_LEVEL = 1;
         showToast('✅ 運営スタッフとしてログイン');
+        updateLoginStatus('運営スタッフ');
     } else {
         showToast('パスワードが違います', true);
         return;
@@ -183,6 +317,35 @@ window.login = function() {
     
     loadPlayers();
     loadHistory();
+}
+
+// ログアウト
+window.logout = function() {
+    if (!confirm('ログアウトしますか？')) {
+        return;
+    }
+    
+    AUTH_LEVEL = 0;
+    document.getElementById('login-status').style.display = 'none';
+    document.getElementById('input-form').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+    document.getElementById('password-input').value = '';
+    
+    // 設定画面を非表示
+    document.getElementById('rule-settings-card').style.display = 'none';
+    document.getElementById('player-management-card').style.display = 'none';
+    
+    showToast('ログアウトしました');
+    console.log('🔓 ログアウト');
+}
+
+// ログイン状態を更新
+function updateLoginStatus(role) {
+    const statusEl = document.getElementById('login-status');
+    const textEl = document.getElementById('login-status-text');
+    
+    textEl.textContent = `${role}としてログイン中`;
+    statusEl.style.display = 'block';
 }
 
 // ===================================
