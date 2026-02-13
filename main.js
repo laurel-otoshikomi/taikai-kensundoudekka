@@ -119,7 +119,8 @@ window.createTournament = async function() {
             limit_count: 0,
             sort1: 'one_max_len',
             sort2: 'one_max_weight',
-            sort3: null
+            sort3: null,
+            hide_ranking: false
         })
         .select();
     
