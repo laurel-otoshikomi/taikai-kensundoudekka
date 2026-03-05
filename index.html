@@ -18,6 +18,7 @@
             --secondary-color: #764ba2;
             --accent-color: #51cf66;
             --text-color: #ffffff;
+            --heading-color: #ffffff;
             --card-bg: rgba(255, 255, 255, 0.1);
             --logo-url: none;
         }
@@ -33,6 +34,14 @@
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: var(--text-color);
             min-height: 100vh;
+        }
+        
+        h1, h2, h3 {
+            color: var(--heading-color);
+        }
+        
+        p, label {
+            color: var(--heading-color);
         }
         
         .container {
@@ -85,7 +94,7 @@
             background: rgba(255, 255, 255, 0.1);
             border: none;
             border-radius: 10px;
-            color: #fff;
+            color: var(--heading-color);
             font-size: 16px;
             cursor: pointer;
             transition: all 0.3s;
@@ -137,18 +146,20 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--heading-color);
+            border: 2px solid transparent;
         }
         
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.1);
         }
         
         .btn-success {
-            background: #4CAF50;
-            color: #fff;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--heading-color);
         }
         
         .btn-danger {
@@ -188,13 +199,14 @@
         
         .stat-label {
             font-size: 12px;
-            opacity: 0.8;
+            color: var(--heading-color);
         }
         
         .stat-value {
             font-size: 20px;
             font-weight: bold;
             margin-top: 5px;
+            color: var(--heading-color);
         }
         
         .history-item {
@@ -396,16 +408,16 @@
                 <p>過去の大会を閲覧できます</p>
             </div>
             
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>📋 マイ大会</h2>
-                    <button class="btn btn-primary" onclick="createNewTournament()">➕ 新規作成</button>
+            <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="font-size: 24px;">📋 マイ大会</h2>
+                    <button class="btn btn-primary" onclick="createNewTournament()" style="padding: 12px 20px; font-size: 15px;">➕ 新規作成</button>
                 </div>
                 
-                <div id="my-tournaments-list"></div>
+                <div id="my-tournaments-list" style="min-height: 150px;"></div>
                 
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn" onclick="backToTop()" style="background: rgba(255,255,255,0.2);">← トップに戻る</button>
+                <div style="text-align: center; margin-top: 25px;">
+                    <button class="btn" onclick="backToTop()" style="background: rgba(255,255,255,0.2); padding: 12px 30px; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">← トップに戻る</button>
                 </div>
             </div>
         </div>
@@ -415,50 +427,56 @@
     <div id="top-page">
         <div class="container">
             <div class="top-content">
-                <img class="logo" id="top-logo" src="" alt="Logo">
-                <h1>🎣 釣果管理システム</h1>
+                <!-- トップページではロゴを非表示 -->
+                <h1 style="text-align: center; margin-bottom: 30px; font-size: 32px;">🎣 釣果管理システム</h1>
                 
                 <!-- マイ大会ボタン -->
-                <button class="btn btn-primary" onclick="showMyTournaments()" style="width: 100%; margin-bottom: 20px; font-size: 16px;">
+                <button class="btn btn-primary" onclick="showMyTournaments()" style="width: 100%; margin-bottom: 25px; font-size: 18px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); border-radius: 12px;">
                     📋 マイ大会を見る
                 </button>
                 
                 <!-- 大会参加 -->
-                <div class="card">
-                    <h2>🏁 大会に参加</h2>
+                <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 25px;">
+                    <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px;">🏁 大会に参加</h2>
+                    <p style="text-align: center; font-size: 14px; color: var(--heading-color); opacity: 0.8; margin-bottom: 20px;">
+                        大会IDを入力して参加
+                    </p>
                     <div class="input-group">
-                        <label>大会IDを入力</label>
-                        <input type="text" id="tournament-id-input" placeholder="例: kanren">
+                        <label style="font-size: 15px; font-weight: bold;">大会IDを入力</label>
+                        <input type="text" id="tournament-id-input" placeholder="例: kanren" style="font-size: 16px; padding: 14px;">
                     </div>
-                    <button class="btn btn-primary" onclick="enterTournament()">参加する</button>
+                    <button class="btn btn-primary" onclick="enterTournament()" style="font-size: 16px; padding: 14px;">参加する</button>
                 </div>
                 
                 <!-- 大会作成 -->
-                <div class="card">
-                    <h2>➕ 新規大会作成</h2>
+                <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                    <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px;">➕ 新規大会作成</h2>
+                    <p style="text-align: center; font-size: 14px; color: var(--heading-color); opacity: 0.8; margin-bottom: 20px;">
+                        自分の大会を作成して管理
+                    </p>
                     <div class="input-group">
-                        <label>大会ID（半角英数字）</label>
-                        <input type="text" id="new-tournament-id" placeholder="例: kanren2024">
+                        <label style="font-size: 15px; font-weight: bold;">大会ID（半角英数字）</label>
+                        <input type="text" id="new-tournament-id" placeholder="例: kanren2024" style="font-size: 16px; padding: 14px;">
                     </div>
                     <div class="input-group">
-                        <label>大会名</label>
-                        <input type="text" id="new-tournament-name" placeholder="例: 茅ヶ崎西連合交流会 2024">
+                        <label style="font-size: 15px; font-weight: bold;">大会名</label>
+                        <input type="text" id="new-tournament-name" placeholder="例: 茅ヶ崎西連合交流会 2024" style="font-size: 16px; padding: 14px;">
                     </div>
                     <div class="input-group">
-                        <label>管理者パスワード</label>
-                        <input type="password" id="new-tournament-admin-password" placeholder="管理者用パスワード">
+                        <label style="font-size: 15px; font-weight: bold;">管理者パスワード</label>
+                        <input type="password" id="new-tournament-admin-password" placeholder="管理者用パスワード" style="font-size: 16px; padding: 14px;">
                     </div>
                     <div class="input-group">
-                        <label>運営スタッフパスワード（オプション）</label>
-                        <input type="password" id="new-tournament-staff-password" placeholder="スタッフ用パスワード">
+                        <label style="font-size: 15px; font-weight: bold;">運営スタッフパスワード（オプション）</label>
+                        <input type="password" id="new-tournament-staff-password" placeholder="スタッフ用パスワード（任意）" style="font-size: 16px; padding: 14px;">
                     </div>
-                    <button class="btn btn-success" onclick="createTournament()">大会を作成</button>
+                    <button class="btn btn-success" onclick="createTournament()" style="font-size: 16px; padding: 14px;">大会を作成</button>
                 </div>
                 
                 <!-- 大会一覧 -->
-                <div class="card">
-                    <h2>📋 大会一覧</h2>
-                    <div id="tournament-list">読み込み中...</div>
+                <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-top: 25px;">
+                    <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px;">📋 大会一覧</h2>
+                    <div id="tournament-list" style="min-height: 100px; display: flex; align-items: center; justify-content: center;">読み込み中...</div>
                 </div>
             </div>
         </div>
@@ -469,18 +487,23 @@
         <div class="container">
             <div class="header">
                 <div style="position: relative; padding: 60px 20px 20px; min-height: 100px;">
+                    <!-- ロゴ（中央上部） -->
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <img class="logo" id="header-logo" src="" alt="Logo" style="max-height: 80px; max-width: 200px;">
+                    </div>
+                    
                     <!-- トップに戻るボタン（左上） -->
                     <button class="btn btn-primary" onclick="window.location.href='/'" style="padding: 8px 15px; font-size: 14px; position: absolute; top: 15px; left: 15px;">🏠 トップに戻る</button>
                     
                     <!-- 大会名（中央） -->
                     <div style="text-align: center;">
                         <h1 id="tournament-name" style="margin: 0; font-size: 36px;">茅ヶ崎西連合交流会</h1>
-                        <p id="tournament-info" style="margin: 5px 0 0 0; font-size: 16px; opacity: 0.9;">リミット2匹</p>
+                        <p id="tournament-info" style="margin: 5px 0 0 0; font-size: 16px; color: var(--heading-color);">リミット2匹</p>
                     </div>
                     
                     <!-- ログインステータス（右上） -->
                     <div id="login-status" style="display: none; position: absolute; top: 15px; right: 15px; text-align: right;">
-                        <div style="font-size: 14px; opacity: 0.8; margin-bottom: 5px;" id="login-status-text">ログイン中</div>
+                        <div style="font-size: 14px; color: var(--heading-color); margin-bottom: 5px;" id="login-status-text">ログイン中</div>
                         <button class="btn btn-danger" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">ログアウト</button>
                     </div>
                 </div>
@@ -580,8 +603,8 @@
                             <button id="tab-zekken" onclick="switchInputMode('zekken')" style="
                                 flex: 1;
                                 padding: 12px;
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                color: white;
+                                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                                color: var(--heading-color);
                                 border: none;
                                 border-radius: 8px;
                                 cursor: pointer;
@@ -608,8 +631,8 @@
                         <!-- ゼッケン番号入力モード -->
                         <div id="zekken-input-mode">
                             <div class="input-group">
-                                <label style="font-size: 16px; font-weight: bold; color: #fff;">🎯 ゼッケン番号</label>
-                                <p style="font-size: 13px; color: #ccc; margin-bottom: 8px;">選手のゼッケン番号を入力してください</p>
+                                <label style="font-size: 16px; font-weight: bold; color: var(--heading-color);">🎯 ゼッケン番号</label>
+                                <p style="font-size: 13px; margin-bottom: 8px; color: var(--heading-color);">選手のゼッケン番号を入力してください</p>
                                 <input type="number" id="zekken-input" placeholder="例: 5" min="1" oninput="onZekkenInput()" onkeypress="if(event.key==='Enter') document.getElementById('length-input').focus()" style="
                                     border: 2px solid #667eea;
                                     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
@@ -626,7 +649,7 @@
                                     display: none;
                                 ">
                                     <div style="font-size: 18px; font-weight: bold; color: #51cf66;" id="player-name-display"></div>
-                                    <div style="font-size: 14px; color: #ccc; margin-top: 5px;" id="player-club-display"></div>
+                                    <div style="font-size: 14px; color: var(--heading-color); margin-top: 5px;" id="player-club-display"></div>
                                 </div>
                                 <div id="player-error-display" style="
                                     margin-top: 10px;
@@ -646,8 +669,8 @@
                         <!-- 検索モード -->
                         <div id="search-input-mode" style="display: none;">
                             <div class="input-group">
-                                <label style="font-size: 16px; font-weight: bold; color: #fff;">🔍 選手を検索</label>
-                                <p style="font-size: 13px; color: #ccc; margin-bottom: 8px;">選手名、ゼッケン番号、所属で検索できます（ひらがな・カタカナ対応）</p>
+                                <label style="font-size: 16px; font-weight: bold; color: var(--heading-color);">🔍 選手を検索</label>
+                                <p style="font-size: 13px; margin-bottom: 8px; color: var(--heading-color);">選手名、ゼッケン番号、所属で検索できます（ひらがな・カタカナ対応）</p>
                                 <div style="position: relative;">
                                     <input type="text" id="player-search" placeholder="例: たなか、田中、5番..." oninput="searchPlayer()" style="border: 2px solid #5c7cfa; box-shadow: 0 2px 8px rgba(92, 124, 250, 0.3);">
                                     <button onclick="clearSearch()" id="clear-search-btn" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255, 100, 100, 0.8); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: white; display: none; font-weight: bold;">✕</button>
@@ -756,7 +779,7 @@
                         }
                         
                         .limit-option.selected {
-                            color: white;
+                            color: var(--heading-color);
                             font-size: 28px;
                             text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
                         }
@@ -831,7 +854,7 @@
                 <!-- QRコード表示 -->
                 <div class="card">
                     <h2>📱 大会URL QRコード</h2>
-                    <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">
+                    <p style="font-size: 14px; margin-bottom: 20px; color: var(--heading-color);">
                         このQRコードを参加者に共有すると、簡単に大会にアクセスできます
                     </p>
                     
@@ -840,8 +863,8 @@
                     </div>
                     
                     <div style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <strong>大会URL:</strong>
-                        <div id="tournament-url" style="margin-top: 8px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 13px;"></div>
+                        <strong style="color: var(--heading-color);">大会URL:</strong>
+                        <div id="tournament-url" style="margin-top: 8px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 13px; color: var(--heading-color);"></div>
                     </div>
                     
                     <button class="btn btn-primary" onclick="copyTournamentURL()" style="width: 100%;">📋 URLをコピー</button>
@@ -859,17 +882,17 @@
                     </div>
                     
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <button id="toggle-tournament-btn" class="btn" onclick="toggleTournamentStatus()" style="flex: 1; padding: 15px; font-size: 16px; background: linear-gradient(135deg, #ffd93d 0%, #ff6b6b 100%); border: none;">
+                        <button id="toggle-tournament-btn" class="btn btn-primary" onclick="toggleTournamentStatus()" style="flex: 1; padding: 15px; font-size: 16px;">
                             ⏸️ 大会を終了
                         </button>
-                        <button class="btn" onclick="exportResults()" style="flex: 1; padding: 15px; font-size: 16px; background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%); border: none;">
+                        <button class="btn btn-success" onclick="exportResults()" style="flex: 1; padding: 15px; font-size: 16px;">
                             📊 結果をエクスポート
                         </button>
                     </div>
                     
                     <div style="background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px; border: 2px solid rgba(255, 107, 107, 0.5);">
                         <h3 style="margin-bottom: 10px; color: #ff6b6b;">⚠️ 危険な操作</h3>
-                        <p style="font-size: 13px; color: #ccc; margin-bottom: 15px;">
+                        <p style="font-size: 13px; color: var(--heading-color); margin-bottom: 15px;">
                             この操作は取り消せません。慎重に実行してください。
                         </p>
                         <button class="btn btn-danger" onclick="deleteTournament()" style="width: 100%; padding: 15px; font-size: 16px;">
@@ -881,7 +904,7 @@
                 <!-- テーマカスタマイズ -->
                 <div class="card">
                     <h2>🎨 テーマカスタマイズ</h2>
-                    <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">
+                    <p style="font-size: 13px; color: var(--heading-color); margin-bottom: 20px;">
                         自分だけのテーマを設定できます（他の参加者には影響しません）
                     </p>
                     
@@ -889,6 +912,12 @@
                     <div class="input-group">
                         <label>✨ テーマプリセット</label>
                         <div id="theme-presets" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                            <div class="theme-preset" data-primary="#1a1a1a" data-secondary="#333333" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #1a1a1a, #333333); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
+                                ⚫ ダークモード<br>（黒ベース）
+                            </div>
+                            <div class="theme-preset" data-primary="#e8e8e8" data-secondary="#d0d0d0" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #e8e8e8, #d0d0d0); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 3px solid #666; color: #000; text-shadow: none;">
+                                ⚪ ライトモード<br>（白ベース）
+                            </div>
                             <div class="theme-preset" data-primary="#667eea" data-secondary="#764ba2" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
                                 🟣 デフォルト<br>（紫）
                             </div>
@@ -900,12 +929,6 @@
                             </div>
                             <div class="theme-preset" data-primary="#4CAF50" data-secondary="#8BC34A" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #4CAF50, #8BC34A); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
                                 🟢 グリーン<br>（自然）
-                            </div>
-                            <div class="theme-preset" data-primary="#E91E63" data-secondary="#FF4081" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #E91E63, #FF4081); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
-                                🩷 ピンク<br>（華やか）
-                            </div>
-                            <div class="theme-preset" data-primary="#9C27B0" data-secondary="#E040FB" onclick="applyThemePreset(this)" style="background: linear-gradient(135deg, #9C27B0, #E040FB); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; transition: all 0.3s; border: 2px solid transparent;">
-                                🟣 パープル<br>（高級）
                             </div>
                         </div>
                     </div>
