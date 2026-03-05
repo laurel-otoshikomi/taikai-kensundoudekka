@@ -190,6 +190,24 @@ async function openTournament(tournamentId) {
     console.log('🎯 優先順位2:', CONFIG.sort2);
     console.log('🎯 優先順位3:', CONFIG.sort3);
     
+    // ロゴを読み込み（データベースから）
+    if (CONFIG.logo) {
+        console.log('🖼️ ロゴを読み込み中...');
+        const logos = document.querySelectorAll('.logo');
+        logos.forEach(logo => {
+            logo.src = CONFIG.logo;
+            logo.classList.add('visible');
+        });
+        
+        // プレビューも更新
+        const previewEl = document.getElementById('logo-preview');
+        const previewImgEl = document.getElementById('logo-preview-img');
+        if (previewEl && previewImgEl) {
+            previewEl.style.display = 'block';
+            previewImgEl.src = CONFIG.logo;
+        }
+    }
+    
     // UIを更新
     document.getElementById('tournament-name').textContent = CONFIG.name;
     const limitText = CONFIG.limit_count > 0 ? `リミット${CONFIG.limit_count}匹` : '総力戦';
@@ -3453,43 +3471,82 @@ window.handleLogoUpload = function(event) {
 }
 
 // ロゴを保存
-window.saveLogo = function() {
+window.saveLogo = async function() {
     if (!tempLogoData && !localStorage.getItem('customLogo')) {
         showToast('⚠️ ロゴがアップロードされていません', true);
         return;
     }
     
+    if (AUTH_LEVEL !== 2) {
+        showToast('⚠️ 管理者権限が必要です', true);
+        return;
+    }
+    
     const logoData = tempLogoData || localStorage.getItem('customLogo');
-    localStorage.setItem('customLogo', logoData);
-    tempLogoData = null;
     
-    // ヘッダーのロゴを更新
-    const logos = document.querySelectorAll('.logo');
-    logos.forEach(logo => {
-        logo.src = logoData;
-        logo.classList.add('visible');
-    });
-    
-    showToast('✅ ロゴを保存しました');
+    try {
+        // データベースに保存
+        const { error } = await client
+            .from('tournaments')
+            .update({ logo: logoData })
+            .eq('id', CURRENT_TOURNAMENT_ID);
+        
+        if (error) throw error;
+        
+        // localStorageにも保存（ローカルキャッシュ）
+        localStorage.setItem('customLogo', logoData);
+        tempLogoData = null;
+        
+        // ヘッダーのロゴを更新
+        const logos = document.querySelectorAll('.logo');
+        logos.forEach(logo => {
+            logo.src = logoData;
+            logo.classList.add('visible');
+        });
+        
+        showToast('✅ ロゴを保存しました（全ユーザーに反映されます）');
+    } catch (error) {
+        console.error('ロゴ保存エラー:', error);
+        showToast('❌ ロゴの保存に失敗しました', true);
+    }
 }
 
 // ロゴを削除
-window.removeLogo = function() {
-    if (!confirm('ロゴを削除しますか？')) return;
+window.removeLogo = async function() {
+    if (!confirm('ロゴを削除しますか？（全ユーザーに反映されます）')) return;
     
-    localStorage.removeItem('customLogo');
-    tempLogoData = null;
+    if (AUTH_LEVEL !== 2) {
+        showToast('⚠️ 管理者権限が必要です', true);
+        return;
+    }
     
-    const logos = document.querySelectorAll('.logo');
-    logos.forEach(logo => {
-        logo.src = '';
-        logo.classList.remove('visible');
-    });
-    
-    document.getElementById('logo-preview').style.display = 'none';
-    document.getElementById('logo-upload').value = '';
-    
-    showToast('✅ ロゴを削除しました');
+    try {
+        // データベースから削除
+        const { error } = await client
+            .from('tournaments')
+            .update({ logo: null })
+            .eq('id', CURRENT_TOURNAMENT_ID);
+        
+        if (error) throw error;
+        
+        // localStorageからも削除
+        localStorage.removeItem('customLogo');
+        tempLogoData = null;
+        
+        const logos = document.querySelectorAll('.logo');
+        logos.forEach(logo => {
+            logo.src = '';
+            logo.classList.remove('visible');
+        });
+        
+        document.getElementById('logo-preview').style.display = 'none';
+        document.getElementById('logo-upload').value = '';
+        
+        showToast('✅ ロゴを削除しました');
+    } catch (error) {
+        console.error('ロゴ削除エラー:', error);
+        showToast('❌ ロゴの削除に失敗しました', true);
+    }
 }
 
 // ロゴを読み込み
