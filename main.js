@@ -900,8 +900,8 @@ async function loadHistory() {
             ">
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                        <strong style="font-size: 18px; color: var(--heading-color);">${item.zekken}番</strong>
-                        <span style="font-size: 16px; color: var(--heading-color);">${playerName}</span>
+                        <strong style="font-size: 18px; color: var(--heading-color); font-weight: bold;">${item.zekken}番</strong>
+                        <strong style="font-size: 16px; color: var(--heading-color); font-weight: bold;">${playerName}</strong>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span style="color: #51cf66; font-weight: bold; font-size: 16px;">📏 ${item.length}cm</span>

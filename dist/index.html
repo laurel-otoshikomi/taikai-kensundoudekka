@@ -397,7 +397,7 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/assets/main-zh_KhkUb.js"></script>
+  <script type="module" crossorigin src="/assets/main-sUxkNF9d.js"></script>
 </head>
 <body>
     <!-- 大会一覧ページ -->
@@ -409,16 +409,16 @@
                 <p>過去の大会を閲覧できます</p>
             </div>
             
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>📋 マイ大会</h2>
-                    <button class="btn btn-primary" onclick="createNewTournament()">➕ 新規作成</button>
+            <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h2 style="font-size: 24px;">📋 マイ大会</h2>
+                    <button class="btn btn-primary" onclick="createNewTournament()" style="padding: 12px 20px; font-size: 15px;">➕ 新規作成</button>
                 </div>
                 
-                <div id="my-tournaments-list"></div>
+                <div id="my-tournaments-list" style="min-height: 150px;"></div>
                 
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn" onclick="backToTop()" style="background: rgba(255,255,255,0.2);">← トップに戻る</button>
+                <div style="text-align: center; margin-top: 25px;">
+                    <button class="btn" onclick="backToTop()" style="background: rgba(255,255,255,0.2); padding: 12px 30px; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">← トップに戻る</button>
                 </div>
             </div>
         </div>
@@ -429,49 +429,55 @@
         <div class="container">
             <div class="top-content">
                 <!-- トップページではロゴを非表示 -->
-                <h1>🎣 釣果管理システム</h1>
+                <h1 style="text-align: center; margin-bottom: 30px; font-size: 32px;">🎣 釣果管理システム</h1>
                 
                 <!-- マイ大会ボタン -->
-                <button class="btn btn-primary" onclick="showMyTournaments()" style="width: 100%; margin-bottom: 20px; font-size: 16px;">
+                <button class="btn btn-primary" onclick="showMyTournaments()" style="width: 100%; margin-bottom: 25px; font-size: 18px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); border-radius: 12px;">
                     📋 マイ大会を見る
                 </button>
                 
                 <!-- 大会参加 -->
-                <div class="card">
-                    <h2>🏁 大会に参加</h2>
+                <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 25px;">
+                    <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px;">🏁 大会に参加</h2>
+                    <p style="text-align: center; font-size: 14px; color: var(--heading-color); opacity: 0.8; margin-bottom: 20px;">
+                        大会IDを入力して参加
+                    </p>
                     <div class="input-group">
-                        <label>大会IDを入力</label>
-                        <input type="text" id="tournament-id-input" placeholder="例: kanren">
+                        <label style="font-size: 15px; font-weight: bold;">大会IDを入力</label>
+                        <input type="text" id="tournament-id-input" placeholder="例: kanren" style="font-size: 16px; padding: 14px;">
                     </div>
-                    <button class="btn btn-primary" onclick="enterTournament()">参加する</button>
+                    <button class="btn btn-primary" onclick="enterTournament()" style="font-size: 16px; padding: 14px;">参加する</button>
                 </div>
                 
                 <!-- 大会作成 -->
-                <div class="card">
-                    <h2>➕ 新規大会作成</h2>
+                <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                    <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px;">➕ 新規大会作成</h2>
+                    <p style="text-align: center; font-size: 14px; color: var(--heading-color); opacity: 0.8; margin-bottom: 20px;">
+                        自分の大会を作成して管理
+                    </p>
                     <div class="input-group">
-                        <label>大会ID（半角英数字）</label>
-                        <input type="text" id="new-tournament-id" placeholder="例: kanren2024">
+                        <label style="font-size: 15px; font-weight: bold;">大会ID（半角英数字）</label>
+                        <input type="text" id="new-tournament-id" placeholder="例: kanren2024" style="font-size: 16px; padding: 14px;">
                     </div>
                     <div class="input-group">
-                        <label>大会名</label>
-                        <input type="text" id="new-tournament-name" placeholder="例: 茅ヶ崎西連合交流会 2024">
+                        <label style="font-size: 15px; font-weight: bold;">大会名</label>
+                        <input type="text" id="new-tournament-name" placeholder="例: 茅ヶ崎西連合交流会 2024" style="font-size: 16px; padding: 14px;">
                     </div>
                     <div class="input-group">
-                        <label>管理者パスワード</label>
-                        <input type="password" id="new-tournament-admin-password" placeholder="管理者用パスワード">
+                        <label style="font-size: 15px; font-weight: bold;">管理者パスワード</label>
+                        <input type="password" id="new-tournament-admin-password" placeholder="管理者用パスワード" style="font-size: 16px; padding: 14px;">
                     </div>
                     <div class="input-group">
-                        <label>運営スタッフパスワード（オプション）</label>
-                        <input type="password" id="new-tournament-staff-password" placeholder="スタッフ用パスワード">
+                        <label style="font-size: 15px; font-weight: bold;">運営スタッフパスワード（オプション）</label>
+                        <input type="password" id="new-tournament-staff-password" placeholder="スタッフ用パスワード（任意）" style="font-size: 16px; padding: 14px;">
                     </div>
-                    <button class="btn btn-success" onclick="createTournament()">大会を作成</button>
+                    <button class="btn btn-success" onclick="createTournament()" style="font-size: 16px; padding: 14px;">大会を作成</button>
                 </div>
                 
                 <!-- 大会一覧 -->
-                <div class="card">
-                    <h2>📋 大会一覧</h2>
-                    <div id="tournament-list">読み込み中...</div>
+                <div class="card" style="border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-top: 25px;">
+                    <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px;">📋 大会一覧</h2>
+                    <div id="tournament-list" style="min-height: 100px; display: flex; align-items: center; justify-content: center;">読み込み中...</div>
                 </div>
             </div>
         </div>
