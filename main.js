@@ -671,16 +671,21 @@ window.switchInputMode = function(mode) {
     const tabZekken = document.getElementById('tab-zekken');
     const tabSearch = document.getElementById('tab-search');
     
+    // テーマカラーを取得
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim();
+    const headingColor = getComputedStyle(document.documentElement).getPropertyValue('--heading-color').trim();
+    
     if (mode === 'zekken') {
         // ゼッケン番号入力モードを表示
         zekkenMode.style.display = 'block';
         searchMode.style.display = 'none';
         
         // タブのスタイル切り替え
-        tabZekken.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        tabZekken.style.color = 'white';
+        tabZekken.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
+        tabZekken.style.color = headingColor;
         tabZekken.style.border = 'none';
-        tabZekken.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+        tabZekken.style.boxShadow = `0 4px 15px rgba(102, 126, 234, 0.4)`;
         
         tabSearch.style.background = 'rgba(255, 255, 255, 0.1)';
         tabSearch.style.color = 'rgba(255, 255, 255, 0.6)';
@@ -697,10 +702,10 @@ window.switchInputMode = function(mode) {
         searchMode.style.display = 'block';
         
         // タブのスタイル切り替え
-        tabSearch.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        tabSearch.style.color = 'white';
+        tabSearch.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
+        tabSearch.style.color = headingColor;
         tabSearch.style.border = 'none';
-        tabSearch.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+        tabSearch.style.boxShadow = `0 4px 15px rgba(102, 126, 234, 0.4)`;
         
         tabZekken.style.background = 'rgba(255, 255, 255, 0.1)';
         tabZekken.style.color = 'rgba(255, 255, 255, 0.6)';
@@ -895,14 +900,14 @@ async function loadHistory() {
             ">
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                        <strong style="font-size: 18px;">${item.zekken}番</strong>
-                        <span style="font-size: 16px;">${playerName}</span>
+                        <strong style="font-size: 18px; color: var(--heading-color);">${item.zekken}番</strong>
+                        <span style="font-size: 16px; color: var(--heading-color);">${playerName}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span style="color: #51cf66; font-weight: bold; font-size: 16px;">📏 ${item.length}cm</span>
                         ${item.weight > 0 ? `<span style="color: #ffd93d; font-weight: bold; font-size: 16px;">⚖️ ${item.weight}g</span>` : ''}
                     </div>
-                    <div style="font-size: 12px; color: #999; margin-top: 5px;">🕐 ${date}</div>
+                    <div style="font-size: 12px; color: var(--heading-color); opacity: 0.7; margin-top: 5px;">🕐 ${date}</div>
                 </div>
                 ${AUTH_LEVEL === 2 ? `
                 <div style="display: flex; gap: 8px;">
@@ -946,7 +951,7 @@ function showEditCatchDialog(catchId, zekken, playerName, currentLength, current
             backdrop-filter: blur(5px);
         ">
             <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
                 padding: 30px;
                 border-radius: 20px;
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -1298,19 +1303,50 @@ function renderBiggestFish(ranking, playerMap) {
         const playerName = player.name || '未登録';
         const playerClub = player.club || '';
         
+        // 順位に応じた色設定（金・銀・銅）
+        let bgColor, borderColor, textColor, medalEmoji;
+        if (index === 0) {
+            // 1位: 金
+            bgColor = 'linear-gradient(135deg, #FFD700, #FFA500)';
+            borderColor = '#FFD700';
+            textColor = '#000';
+            medalEmoji = '🥇';
+        } else if (index === 1) {
+            // 2位: 銀
+            bgColor = 'linear-gradient(135deg, #C0C0C0, #A8A8A8)';
+            borderColor = '#C0C0C0';
+            textColor = '#000';
+            medalEmoji = '🥈';
+        } else {
+            // 3位: 銅
+            bgColor = 'linear-gradient(135deg, #CD7F32, #B87333)';
+            borderColor = '#CD7F32';
+            textColor = '#FFF';
+            medalEmoji = '🥉';
+        }
+        
         return `
-            <div class="ranking-item ${index === 0 ? 'top3' : ''}" style="padding: 8px; margin-bottom: 8px;">
+            <div class="ranking-item" style="
+                padding: 12px;
+                margin-bottom: 10px;
+                background: ${bgColor};
+                border: 3px solid ${borderColor};
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            ">
                 <div class="ranking-header">
-                    <div style="font-size: 16px; font-weight: bold;">${index + 1}位</div>
+                    <div style="font-size: 20px; font-weight: bold; color: ${textColor};">
+                        ${medalEmoji} ${index + 1}位
+                    </div>
                     <div>
-                        <div style="font-size: 14px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
-                        ${playerClub ? `<div style="font-size: 10px; opacity: 0.8;">${playerClub}</div>` : ''}
+                        <div style="font-size: 16px; font-weight: bold; color: ${textColor};">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8; color: ${textColor};">${playerClub}</div>` : ''}
                     </div>
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label" style="font-size: 10px;">最大長寸</div>
-                        <div class="stat-value" style="color: #FFD700; font-size: 16px;">${r.max_len.toFixed(1)}cm</div>
+                        <div class="stat-label" style="font-size: 12px; color: ${textColor}; opacity: 0.9;">最大長寸</div>
+                        <div class="stat-value" style="color: ${textColor}; font-size: 20px; font-weight: bold;">${r.max_len.toFixed(1)}cm</div>
                     </div>
                 </div>
             </div>
@@ -1347,24 +1383,69 @@ function renderSmallestFish(ranking, playerMap) {
         const playerName = player.name || '未登録';
         const playerClub = player.club || '';
         
+        // 順位に応じた色設定（金・銀・銅）
+        let bgColor, borderColor, textColor, medalEmoji;
+        if (index === 0) {
+            // 1位: 金
+            bgColor = 'linear-gradient(135deg, #FFD700, #FFA500)';
+            borderColor = '#FFD700';
+            textColor = '#000';
+            medalEmoji = '🥇';
+        } else if (index === 1) {
+            // 2位: 銀
+            bgColor = 'linear-gradient(135deg, #C0C0C0, #A8A8A8)';
+            borderColor = '#C0C0C0';
+            textColor = '#000';
+            medalEmoji = '🥈';
+        } else {
+            // 3位: 銅
+            bgColor = 'linear-gradient(135deg, #CD7F32, #B87333)';
+            borderColor = '#CD7F32';
+            textColor = '#FFF';
+            medalEmoji = '🥉';
+        }
+        
         return `
-            <div class="ranking-item ${index === 0 ? 'top3' : ''}" style="padding: 8px; margin-bottom: 8px;">
+            <div class="ranking-item" style="
+                padding: 12px;
+                margin-bottom: 10px;
+                background: ${bgColor};
+                border: 3px solid ${borderColor};
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            ">
                 <div class="ranking-header">
-                    <div style="font-size: 16px; font-weight: bold;">${index + 1}位</div>
+                    <div style="font-size: 20px; font-weight: bold; color: ${textColor};">
+                        ${medalEmoji} ${index + 1}位
+                    </div>
                     <div>
-                        <div style="font-size: 14px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
-                        ${playerClub ? `<div style="font-size: 10px; opacity: 0.8;">${playerClub}</div>` : ''}
+                        <div style="font-size: 16px; font-weight: bold; color: ${textColor};">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8; color: ${textColor};">${playerClub}</div>` : ''}
                     </div>
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label" style="font-size: 10px;">最小長寸</div>
-                        <div class="stat-value" style="color: #4CAF50; font-size: 16px;">${r.min_len.toFixed(1)}cm</div>
+                        <div class="stat-label" style="font-size: 12px; color: ${textColor}; opacity: 0.9;">最小長寸</div>
+                        <div class="stat-value" style="color: ${textColor}; font-size: 20px; font-weight: bold;">${r.min_len.toFixed(1)}cm</div>
                     </div>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+// ライトモード判定（明るい色かどうか）
+function isLightTheme() {
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    // RGB値を取得して明度を計算
+    const hex = primaryColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    // 明度の計算（0-255の範囲）
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    // 明度が180以上ならライトモード
+    return brightness > 180;
 }
 
 // 大会順位を表示
@@ -1373,6 +1454,11 @@ function renderMainRanking(ranking, playerMap) {
     const sort1 = CONFIG.sort1 || null;
     const sort2 = CONFIG.sort2 || null;
     const limitCount = CONFIG.limit_count || 0;
+    
+    // ライトモード判定
+    const isLight = isLightTheme();
+    const textColor = isLight ? '#1a1a1a' : 'white';
+    const labelOpacity = isLight ? '0.7' : '0.9';
     
     // 初期表示件数
     const displayCount = Math.min(RANKING_DISPLAY_COUNT, ranking.length);
@@ -1384,6 +1470,32 @@ function renderMainRanking(ranking, playerMap) {
         const player = playerMap[r.zekken] || {};
         const playerName = player.name || '未登録';
         const playerClub = player.club || '';
+        
+        // 順位に応じた装飾
+        let medalEmoji = '';
+        let borderColor = 'transparent';
+        let borderWidth = '2px';
+        let boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        
+        if (index === 0) {
+            // 1位: 金
+            medalEmoji = '🏆';
+            borderColor = '#FFD700';
+            borderWidth = '4px';
+            boxShadow = '0 6px 16px rgba(255, 215, 0, 0.4)';
+        } else if (index === 1) {
+            // 2位: 銀
+            medalEmoji = '🥈';
+            borderColor = '#C0C0C0';
+            borderWidth = '4px';
+            boxShadow = '0 6px 16px rgba(192, 192, 192, 0.4)';
+        } else if (index === 2) {
+            // 3位: 銅
+            medalEmoji = '🥉';
+            borderColor = '#CD7F32';
+            borderWidth = '4px';
+            boxShadow = '0 6px 16px rgba(205, 127, 50, 0.4)';
+        }
         
         // ルールのラベルにリミット匹数を追加
         let ruleLabel = SORT_OPTIONS[ruleType];
@@ -1397,29 +1509,35 @@ function renderMainRanking(ranking, playerMap) {
         const sort2Value = sort2 ? formatValue(sort2, r[sort2]) : null;
         
         return `
-            <div class="ranking-item ${isTop3 ? 'top3' : ''}">
+            <div class="ranking-item ${isTop3 ? 'top3' : ''}" onclick="showPlayerDetail(${r.zekken})" style="cursor: pointer; transition: all 0.3s ease; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: ${boxShadow}; border: ${borderWidth} solid ${borderColor};">
                 <div class="ranking-header">
-                    <div style="font-size: 28px; font-weight: bold;">${index + 1}位</div>
+                    <div style="font-size: 32px; font-weight: bold; color: ${textColor}; display: flex; align-items: center; gap: 8px;">
+                        ${medalEmoji ? `<span style="font-size: 36px;">${medalEmoji}</span>` : ''}
+                        <span>${index + 1}位</span>
+                    </div>
                     <div>
-                        <div style="font-size: 24px; font-weight: bold;">${r.zekken}番: ${playerName}</div>
-                        ${playerClub ? `<div style="font-size: 14px; opacity: 0.8;">${playerClub}</div>` : ''}
+                        <div style="font-size: 24px; font-weight: bold; color: ${textColor};">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 14px; opacity: ${labelOpacity}; color: ${textColor};">${playerClub}</div>` : ''}
+                    </div>
+                    <div style="margin-left: auto; font-size: 14px; opacity: ${labelOpacity}; color: ${textColor};">
+                        👆 タップで詳細
                     </div>
                 </div>
                 <div class="ranking-stats">
                     <div class="stat">
-                        <div class="stat-label">${ruleLabel}</div>
-                        <div class="stat-value" style="color: #FFD700;">${ruleValue}</div>
+                        <div class="stat-label" style="color: ${textColor};">${ruleLabel}</div>
+                        <div class="stat-value" style="color: ${isLight ? '#D4AF37' : '#FFD700'};">${ruleValue}</div>
                     </div>
                     ${sort1Value ? `
                     <div class="stat">
-                        <div class="stat-label">${SORT_OPTIONS[sort1]}</div>
-                        <div class="stat-value" style="color: #4CAF50;">${sort1Value}</div>
+                        <div class="stat-label" style="color: ${textColor};">${SORT_OPTIONS[sort1]}</div>
+                        <div class="stat-value" style="color: ${isLight ? '#2E7D32' : '#4CAF50'};">${sort1Value}</div>
                     </div>
                     ` : ''}
                     ${sort2Value ? `
                     <div class="stat">
-                        <div class="stat-label">${SORT_OPTIONS[sort2]}</div>
-                        <div class="stat-value" style="color: #2196F3;">${sort2Value}</div>
+                        <div class="stat-label" style="color: ${textColor};">${SORT_OPTIONS[sort2]}</div>
+                        <div class="stat-value" style="color: ${isLight ? '#1565C0' : '#2196F3'};">${sort2Value}</div>
                     </div>
                     ` : ''}
                 </div>
@@ -1569,7 +1687,7 @@ function showEditPlayerDialog(player, callback) {
             backdrop-filter: blur(5px);
         ">
             <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
                 padding: 30px;
                 border-radius: 20px;
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -1637,7 +1755,7 @@ function showEditPlayerDialog(player, callback) {
                     
                     <button id="edit-ok-btn" style="
                         padding: 12px 40px;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
                         color: white;
                         border: 2px solid rgba(255, 255, 255, 0.8);
                         border-radius: 25px;
@@ -3175,6 +3293,15 @@ window.applyThemePreset = function(element) {
     document.documentElement.style.setProperty('--primary-color', primaryColor);
     document.documentElement.style.setProperty('--secondary-color', secondaryColor);
     
+    // 見出し色を自動調整（明るいテーマなら黒、暗いテーマなら白）
+    const hex = primaryColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const headingColor = brightness > 180 ? '#1a1a1a' : '#ffffff';
+    document.documentElement.style.setProperty('--heading-color', headingColor);
+    
     // 選択状態を視覚的に表示
     document.querySelectorAll('.theme-preset').forEach(preset => {
         preset.style.border = '2px solid transparent';
@@ -3194,6 +3321,15 @@ function loadTheme() {
         const primaryColorTextEl = document.getElementById('primary-color-text');
         if (primaryColorEl) primaryColorEl.value = theme.primaryColor;
         if (primaryColorTextEl) primaryColorTextEl.value = theme.primaryColor;
+        
+        // 見出し色を自動調整
+        const hex = theme.primaryColor.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        const headingColor = brightness > 180 ? '#1a1a1a' : '#ffffff';
+        document.documentElement.style.setProperty('--heading-color', headingColor);
     }
     
     if (theme.secondaryColor) {
@@ -3223,6 +3359,15 @@ window.saveTheme = function() {
     // CSS変数を更新
     document.documentElement.style.setProperty('--primary-color', primaryColor);
     document.documentElement.style.setProperty('--secondary-color', secondaryColor);
+    
+    // 見出し色を自動調整
+    const hex = primaryColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const headingColor = brightness > 180 ? '#1a1a1a' : '#ffffff';
+    document.documentElement.style.setProperty('--heading-color', headingColor);
     
     showToast('✅ テーマを保存しました');
 }
@@ -3495,3 +3640,295 @@ window.testSupabaseConnection = async function() {
 
 console.log('✅ Supabase接続テスト機能を読み込みました');
 console.log('💡 ヒント: testSupabaseConnection() を実行して接続をテストできます');
+
+// ===================================
+// 選手詳細表示
+// ===================================
+
+// 選手の詳細を表示
+window.showPlayerDetail = async function(zekken) {
+    console.log('📊 選手詳細表示:', zekken);
+    
+    // 選手情報を取得
+    const player = ALL_PLAYERS.find(p => p.zekken === zekken);
+    if (!player) {
+        showToast('❌ 選手が見つかりません', true);
+        return;
+    }
+    
+    // 釣果データを取得
+    const { data: catches, error } = await client
+        .from('catches')
+        .select('*')
+        .eq('tournament_id', CURRENT_TOURNAMENT_ID)
+        .eq('zekken', zekken)
+        .order('created_at', { ascending: false });
+    
+    if (error) {
+        console.error('❌ 釣果取得エラー:', error);
+        showToast('❌ 釣果データの取得に失敗しました', true);
+        return;
+    }
+    
+    // 統計を計算
+    const stats = calculatePlayerStats(catches);
+    
+    // モーダルを表示
+    showPlayerDetailModal(player, catches, stats);
+}
+
+// 選手の統計を計算
+function calculatePlayerStats(catches) {
+    if (!catches || catches.length === 0) {
+        return {
+            totalCount: 0,
+            totalWeight: 0,
+            totalLength: 0,
+            maxLength: 0,
+            maxWeight: 0,
+            secondMaxLength: 0,
+            cumulativeCount: 0
+        };
+    }
+    
+    const lengths = catches.map(c => c.length);
+    const weights = catches.map(c => c.weight || 0);
+    
+    // 長寸でソート（降順）
+    const sortedLengths = [...lengths].sort((a, b) => b - a);
+    const sortedWeights = [...weights].sort((a, b) => b - a);
+    
+    const totalLength = lengths.reduce((sum, l) => sum + l, 0);
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    
+    return {
+        totalCount: catches.length,
+        totalWeight: Math.round(totalWeight),
+        totalLength: totalLength.toFixed(1),
+        maxLength: sortedLengths[0] ? sortedLengths[0].toFixed(1) : '0.0',
+        maxWeight: Math.round(sortedWeights[0] || 0),
+        secondMaxLength: sortedLengths[1] ? sortedLengths[1].toFixed(1) : '0.0',
+        cumulativeCount: catches.length
+    };
+}
+
+// 選手詳細モーダルを表示
+function showPlayerDetailModal(player, catches, stats) {
+    // ライトモード判定
+    const isLight = isLightTheme();
+    const textColor = isLight ? '#1a1a1a' : 'white';
+    const buttonBg = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)';
+    const buttonBgHover = isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)';
+    const buttonBorder = isLight ? '#333' : 'white';
+    
+    const modalHtml = `
+        <div id="player-detail-modal" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        " onclick="closePlayerDetail(event)">
+            <div style="
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                border-radius: 20px;
+                padding: 30px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.3s ease;
+            " onclick="event.stopPropagation()">
+                <!-- ヘッダー -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 28px; color: ${textColor};">
+                            ${player.zekken}番: ${player.name}
+                        </h2>
+                        ${player.club ? `<div style="margin-top: 5px; font-size: 16px; opacity: 0.9; color: ${textColor};">${player.club}</div>` : ''}
+                        ${player.reading ? `<div style="margin-top: 3px; font-size: 14px; opacity: 0.7; color: ${textColor};">(${player.reading})</div>` : ''}
+                    </div>
+                    <button onclick="closePlayerDetail()" style="
+                        background: ${buttonBg};
+                        border: 2px solid ${buttonBorder};
+                        color: ${textColor};
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        font-size: 24px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.background='${buttonBgHover}'" onmouseout="this.style.background='${buttonBg}'">
+                        ✕
+                    </button>
+                </div>
+                
+                <!-- 統計サマリー -->
+                <div style="
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 15px;
+                    margin-bottom: 25px;
+                ">
+                    <div style="background: ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'}; padding: 15px; border-radius: 12px; border: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'};">
+                        <div style="font-size: 14px; opacity: 0.8; color: ${textColor};">累計獲得枚数</div>
+                        <div style="font-size: 28px; font-weight: bold; color: ${textColor};">${stats.cumulativeCount}枚</div>
+                    </div>
+                    <div style="background: ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'}; padding: 15px; border-radius: 12px; border: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'};">
+                        <div style="font-size: 14px; opacity: 0.8; color: ${textColor};">総重量</div>
+                        <div style="font-size: 28px; font-weight: bold; color: ${textColor};">${stats.totalWeight}g</div>
+                    </div>
+                    <div style="background: ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'}; padding: 15px; border-radius: 12px; border: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'};">
+                        <div style="font-size: 14px; opacity: 0.8; color: ${textColor};">最大長寸</div>
+                        <div style="font-size: 28px; font-weight: bold; color: ${isLight ? '#D4AF37' : '#FFD700'};">${stats.maxLength}cm</div>
+                    </div>
+                    <div style="background: ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'}; padding: 15px; border-radius: 12px; border: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'};">
+                        <div style="font-size: 14px; opacity: 0.8; color: ${textColor};">最大重量</div>
+                        <div style="font-size: 28px; font-weight: bold; color: ${isLight ? '#D4AF37' : '#FFD700'};">${stats.maxWeight}g</div>
+                    </div>
+                    <div style="background: ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'}; padding: 15px; border-radius: 12px; border: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'};">
+                        <div style="font-size: 14px; opacity: 0.8; color: ${textColor};">2番目長寸</div>
+                        <div style="font-size: 24px; font-weight: bold; color: ${isLight ? '#2E7D32' : '#4CAF50'};">${stats.secondMaxLength}cm</div>
+                    </div>
+                    <div style="background: ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'}; padding: 15px; border-radius: 12px; border: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'};">
+                        <div style="font-size: 14px; opacity: 0.8; color: ${textColor};">累計獲得枚数</div>
+                        <div style="font-size: 24px; font-weight: bold; color: ${isLight ? '#2E7D32' : '#4CAF50'};">${stats.cumulativeCount}枚</div>
+                    </div>
+                </div>
+                
+                <!-- 全釣果リスト -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: ${textColor}; margin-bottom: 15px; font-size: 20px; border-bottom: 2px solid ${isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'}; padding-bottom: 10px;">
+                        📋 全釣果記録 (${catches.length}件)
+                    </h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${catches.length === 0 ? 
+                            `<div style="text-align: center; padding: 20px; color: ${textColor}; opacity: 0.7;">まだ釣果がありません</div>` :
+                            catches.map((c, index) => {
+                                // 釣果番号を逆順にする（最新が最後の番号）
+                                const catchNumber = catches.length - index;
+                                return `
+                                <div style="
+                                    background: ${isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)'};
+                                    padding: 15px;
+                                    border-radius: 10px;
+                                    margin-bottom: 10px;
+                                    border-left: 4px solid ${index === 0 ? (isLight ? '#D4AF37' : '#FFD700') : (isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)')};
+                                ">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <div style="font-size: 18px; font-weight: bold; color: ${textColor};">
+                                                ${catchNumber}匹目
+                                                ${index === 0 ? `<span style="color: ${isLight ? '#D4AF37' : '#FFD700'};">🏆 最新</span>` : ''}
+                                            </div>
+                                            <div style="font-size: 14px; opacity: 0.7; color: ${textColor}; margin-top: 3px;">
+                                                ${new Date(c.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-size: 24px; font-weight: bold; color: ${isLight ? '#2E7D32' : '#4CAF50'};">
+                                                ${c.length.toFixed(1)}cm
+                                            </div>
+                                            ${c.weight > 0 ? `
+                                                <div style="font-size: 16px; color: ${textColor}; opacity: 0.9;">
+                                                    ${Math.round(c.weight)}g
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `}).join('')
+                        }
+                    </div>
+                </div>
+                
+                <!-- 閉じるボタン -->
+                <button onclick="closePlayerDetail()" style="
+                    width: 100%;
+                    padding: 15px;
+                    background: ${buttonBg};
+                    border: 2px solid ${buttonBorder};
+                    border-radius: 12px;
+                    color: ${textColor};
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='${buttonBgHover}'" onmouseout="this.style.background='${buttonBg}'">
+                    閉じる
+                </button>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            #player-detail-modal > div::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            #player-detail-modal > div::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+            }
+            
+            #player-detail-modal > div::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 4px;
+            }
+            
+            #player-detail-modal > div::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+        </style>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// 選手詳細モーダルを閉じる
+window.closePlayerDetail = function(event) {
+    // eventがある場合は背景クリック、無い場合はボタンクリック
+    if (event && event.target.id !== 'player-detail-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('player-detail-modal');
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+// フェードアウトアニメーション
+const fadeOutStyle = document.createElement('style');
+fadeOutStyle.textContent = `
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+`;
+document.head.appendChild(fadeOutStyle);
+
+console.log('✅ 選手詳細表示機能を読み込みました');
