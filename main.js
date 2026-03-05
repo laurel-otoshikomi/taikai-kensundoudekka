@@ -125,11 +125,21 @@ window.createTournament = async function() {
         .select();
     
     if (error) {
-        console.error('大会作成エラー:', error);
+        console.error('❌ 大会作成エラー:', error);
+        console.error('エラー詳細:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        });
+        
         if (error.code === '23505') {
-            showToast('この大会IDは既に使用されています', true);
+            showToast('❌ この大会IDは既に使用されています', true);
+        } else if (error.message && error.message.includes('Failed to fetch')) {
+            showToast('❌ Supabaseへの接続に失敗しました。ネットワークを確認してください。', true);
+            alert(`Supabase接続エラー\n\n1. Supabaseプロジェクトが一時停止していないか確認\n2. ネットワーク接続を確認\n3. RLSポリシーが設定されているか確認\n\nURL: ${supabaseUrl}`);
         } else {
-            showToast('大会の作成に失敗しました', true);
+            showToast(`❌ 大会の作成に失敗しました: ${error.message || '不明なエラー'}`, true);
         }
         return;
     }
@@ -3449,3 +3459,39 @@ window.toggleRankingVisibility = async function() {
 }
 
 console.log('✅ 順位表示制御機能を読み込みました');
+
+// ===================================
+// Supabase接続テスト
+// ===================================
+
+// Supabase接続をテスト
+window.testSupabaseConnection = async function() {
+    console.log('🔌 Supabase接続テスト開始...');
+    console.log('URL:', supabaseUrl);
+    
+    try {
+        // シンプルなクエリでテスト
+        const { data, error } = await client
+            .from('tournaments')
+            .select('count')
+            .limit(1);
+        
+        if (error) {
+            console.error('❌ 接続エラー:', error);
+            alert(`Supabase接続失敗\n\nエラー: ${error.message}\nコード: ${error.code}\n\nSupabaseダッシュボードで以下を確認:\n1. プロジェクトが一時停止していないか\n2. RLSポリシーが設定されているか\n3. API Keyが正しいか`);
+            return false;
+        }
+        
+        console.log('✅ Supabase接続成功');
+        alert('✅ Supabase接続成功！\n\nデータベースに正常に接続できました。');
+        return true;
+        
+    } catch (err) {
+        console.error('❌ ネットワークエラー:', err);
+        alert(`ネットワークエラー\n\n${err.message}\n\n以下を確認してください:\n1. インターネット接続\n2. Supabaseプロジェクトの状態\n3. ファイアウォール設定`);
+        return false;
+    }
+}
+
+console.log('✅ Supabase接続テスト機能を読み込みました');
+console.log('💡 ヒント: testSupabaseConnection() を実行して接続をテストできます');
