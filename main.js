@@ -1510,17 +1510,17 @@ function renderMainRanking(ranking, playerMap) {
         
         return `
             <div class="ranking-item ${isTop3 ? 'top3' : ''}" onclick="showPlayerDetail(${r.zekken})" style="cursor: pointer; transition: all 0.3s ease; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: ${boxShadow}; border: ${borderWidth} solid ${borderColor};">
-                <div class="ranking-header">
-                    <div style="font-size: 32px; font-weight: bold; color: ${textColor}; display: flex; align-items: center; gap: 8px;">
-                        ${medalEmoji ? `<span style="font-size: 36px;">${medalEmoji}</span>` : ''}
-                        <span>${index + 1}位</span>
+                <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        ${medalEmoji ? `<span style="font-size: 36px; line-height: 1;">${medalEmoji}</span>` : ''}
+                        <span style="font-size: 32px; font-weight: bold; color: ${textColor}; white-space: nowrap;">${index + 1}位</span>
                     </div>
-                    <div>
-                        <div style="font-size: 24px; font-weight: bold; color: ${textColor};">${r.zekken}番: ${playerName}</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 20px; font-weight: bold; color: ${textColor}; margin-bottom: 4px;">${r.zekken}番: ${playerName}</div>
                         ${playerClub ? `<div style="font-size: 14px; opacity: ${labelOpacity}; color: ${textColor};">${playerClub}</div>` : ''}
                     </div>
-                    <div style="margin-left: auto; font-size: 14px; opacity: ${labelOpacity}; color: ${textColor};">
-                        👆 タップで詳細
+                    <div style="font-size: 12px; opacity: ${labelOpacity}; color: ${textColor}; white-space: nowrap; flex-shrink: 0;">
+                        👆 タップで<br>詳細
                     </div>
                 </div>
                 <div class="ranking-stats">

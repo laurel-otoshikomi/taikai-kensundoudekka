@@ -25,8 +25,8 @@ URL: ${K}`)):d(`❌ 大会の作成に失敗しました: ${r.message||"不明�
             ">
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                        <strong style="font-size: 18px; color: var(--heading-color); font-weight: bold;">${o.zekken}番</strong>
-                        <strong style="font-size: 16px; color: var(--heading-color); font-weight: bold;">${r}</strong>
+                        <strong style="font-size: 18px; color: var(--heading-color);">${o.zekken}番</strong>
+                        <span style="font-size: 16px; color: var(--heading-color);">${r}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span style="color: #51cf66; font-weight: bold; font-size: 16px;">📏 ${o.length}cm</span>
@@ -181,17 +181,17 @@ URL: ${K}`)):d(`❌ 大会の作成に失敗しました: ${r.message||"不明�
             </div>
         `}).join("")}function ie(){const t=getComputedStyle(document.documentElement).getPropertyValue("--primary-color").trim().replace("#",""),i=parseInt(t.substr(0,2),16),n=parseInt(t.substr(2,2),16),o=parseInt(t.substr(4,2),16);return(i*299+n*587+o*114)/1e3>180}function re(e,t){const i=g.rule_type||"max_len",n=g.sort1||null,o=g.sort2||null,r=g.limit_count||0,s=ie(),l=s?"#1a1a1a":"white",a=s?"0.7":"0.9",m=Math.min(Q,e.length),y=e.slice(0,m),p=document.getElementById("ranking-list");p.innerHTML=y.map((c,u)=>{const x=u<3,w=t[c.zekken]||{},z=w.name||"未登録",L=w.club||"";let $="",_="transparent",P="2px",M="0 4px 8px rgba(0,0,0,0.2)";u===0?($="🏆",_="#FFD700",P="4px",M="0 6px 16px rgba(255, 215, 0, 0.4)"):u===1?($="🥈",_="#C0C0C0",P="4px",M="0 6px 16px rgba(192, 192, 192, 0.4)"):u===2&&($="🥉",_="#CD7F32",P="4px",M="0 6px 16px rgba(205, 127, 50, 0.4)");let N=Y[i];(i==="limit_total_len"||i==="limit_weight")&&r>0&&(N+=` (${r}匹)`);const I=U(i,c[i]),E=n?U(n,c[n]):null,B=o?U(o,c[o]):null;return`
             <div class="ranking-item ${x?"top3":""}" onclick="showPlayerDetail(${c.zekken})" style="cursor: pointer; transition: all 0.3s ease; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: ${M}; border: ${P} solid ${_};">
-                <div class="ranking-header">
-                    <div style="font-size: 32px; font-weight: bold; color: ${l}; display: flex; align-items: center; gap: 8px;">
-                        ${$?`<span style="font-size: 36px;">${$}</span>`:""}
-                        <span>${u+1}位</span>
+                <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        ${$?`<span style="font-size: 36px; line-height: 1;">${$}</span>`:""}
+                        <span style="font-size: 32px; font-weight: bold; color: ${l}; white-space: nowrap;">${u+1}位</span>
                     </div>
-                    <div>
-                        <div style="font-size: 24px; font-weight: bold; color: ${l};">${c.zekken}番: ${z}</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 20px; font-weight: bold; color: ${l}; margin-bottom: 4px;">${c.zekken}番: ${z}</div>
                         ${L?`<div style="font-size: 14px; opacity: ${a}; color: ${l};">${L}</div>`:""}
                     </div>
-                    <div style="margin-left: auto; font-size: 14px; opacity: ${a}; color: ${l};">
-                        👆 タップで詳細
+                    <div style="font-size: 12px; opacity: ${a}; color: ${l}; white-space: nowrap; flex-shrink: 0;">
+                        👆 タップで<br>詳細
                     </div>
                 </div>
                 <div class="ranking-stats">
