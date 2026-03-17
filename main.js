@@ -929,8 +929,14 @@ async function loadHistory() {
                 </div>
                 ${AUTH_LEVEL >= 1 ? `
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary" onclick="editCatch(${item.id}, ${item.zekken}, ${item.length}, ${item.weight})" style="padding: 8px 15px; font-size: 14px;">✏️ 編集</button>
-                    <button class="btn btn-danger" onclick="deleteCatch(${item.id})" style="padding: 8px 15px; font-size: 14px;">🗑️ 削除</button>
+                    <button class="btn btn-primary" onclick="editCatch(${item.id}, ${item.zekken}, ${item.length}, ${item.weight})" style="padding: 8px 15px; font-size: 14px; display: flex; align-items: center; gap: 4px; justify-content: center; white-space: nowrap;">
+                        <span style="font-size: 16px;">✏️</span>
+                        <span>編集</span>
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteCatch(${item.id})" style="padding: 8px 15px; font-size: 14px; display: flex; align-items: center; gap: 4px; justify-content: center; white-space: nowrap;">
+                        <span style="font-size: 16px;">🗑️</span>
+                        <span>削除</span>
+                    </button>
                 </div>
                 ` : ''}
             </div>
@@ -1114,23 +1120,134 @@ window.deleteCatch = async function(id) {
         return;
     }
     
-    if (!confirm('この記録を削除しますか？\n削除すると順位表も更新されます。')) return;
-    
-    const { error } = await client
-        .from('catches')
-        .delete()
-        .eq('id', id);
-    
-    if (error) {
-        console.error('❌ 削除エラー:', error);
-        showToast('❌ 削除に失敗しました', true);
-        return;
-    }
-    
-    showToast('✅ 削除しました');
-    await loadHistory();
-    await loadRanking();
+    // カスタム削除確認モーダルを表示
+    showDeleteConfirmDialog(id);
 }
+
+// 削除確認ダイアログを表示
+function showDeleteConfirmDialog(catchId) {
+    const dialogHtml = `
+        <div id="delete-confirm-dialog" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.2s ease-out;
+        ">
+            <div style="
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                padding: 30px;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                max-width: 400px;
+                width: 90%;
+                animation: slideIn 0.3s ease-out;
+            " onclick="event.stopPropagation()">
+                <h2 style="margin-bottom: 20px; color: white; font-size: 24px; text-align: center;">
+                    🗑️ 削除確認
+                </h2>
+                
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <p style="color: white; font-size: 16px; line-height: 1.6; margin: 0; text-align: center;">
+                        この記録を削除しますか？<br>
+                        <span style="font-size: 14px; opacity: 0.9; margin-top: 10px; display: block;">削除すると順位表も更新されます。</span>
+                    </p>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="delete-cancel-btn" style="
+                        padding: 12px 30px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.5);
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                    ">キャンセル</button>
+                    
+                    <button id="delete-confirm-btn" style="
+                        padding: 12px 40px;
+                        background: linear-gradient(135deg, #ff6b6b 0%, #e74c3c 100%);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.8);
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+                    ">削除する</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', dialogHtml);
+    
+    const dialog = document.getElementById('delete-confirm-dialog');
+    const cancelBtn = document.getElementById('delete-cancel-btn');
+    const confirmBtn = document.getElementById('delete-confirm-btn');
+    
+    // キャンセルボタン
+    cancelBtn.onclick = () => {
+        dialog.remove();
+    };
+    
+    // 背景クリックで閉じる
+    dialog.onclick = () => {
+        dialog.remove();
+    };
+    
+    // 削除確定ボタン
+    confirmBtn.onclick = async () => {
+        dialog.remove();
+        
+        // データベースから削除
+        const { error } = await client
+            .from('catches')
+            .delete()
+            .eq('id', catchId);
+        
+        if (error) {
+            console.error('❌ 削除エラー:', error);
+            showToast('❌ 削除に失敗しました', true);
+            return;
+        }
+        
+        showToast('✅ 削除しました');
+        await loadHistory();
+        await loadRanking();
+    };
+    
+    // ホバーエフェクト
+    cancelBtn.onmouseenter = () => {
+        cancelBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+        cancelBtn.style.transform = 'translateY(-2px)';
+    };
+    cancelBtn.onmouseleave = () => {
+        cancelBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+        cancelBtn.style.transform = 'translateY(0)';
+    };
+    
+    confirmBtn.onmouseenter = () => {
+        confirmBtn.style.transform = 'translateY(-2px)';
+        confirmBtn.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.6)';
+    };
+    confirmBtn.onmouseleave = () => {
+        confirmBtn.style.transform = 'translateY(0)';
+        confirmBtn.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.4)';
+    };
+}
+
 
 // ===================================
 // ランキング読み込み
