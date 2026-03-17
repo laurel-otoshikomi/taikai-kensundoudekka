@@ -927,7 +927,7 @@ async function loadHistory() {
                     </div>
                     <div style="font-size: 12px; color: var(--heading-color); opacity: 0.7; margin-top: 5px;">🕐 ${date}</div>
                 </div>
-                ${AUTH_LEVEL === 2 ? `
+                ${AUTH_LEVEL >= 1 ? `
                 <div style="display: flex; gap: 8px;">
                     <button class="btn btn-primary" onclick="editCatch(${item.id}, ${item.zekken}, ${item.length}, ${item.weight})" style="padding: 8px 15px; font-size: 14px;">✏️ 編集</button>
                     <button class="btn btn-danger" onclick="deleteCatch(${item.id})" style="padding: 8px 15px; font-size: 14px;">🗑️ 削除</button>
@@ -940,8 +940,8 @@ async function loadHistory() {
 
 // 釣果編集
 window.editCatch = async function(catchId, zekken, currentLength, currentWeight) {
-    if (AUTH_LEVEL !== 2) {
-        showToast('管理者権限が必要です', true);
+    if (AUTH_LEVEL < 1) {
+        showToast('運営者または管理者権限が必要です', true);
         return;
     }
     
@@ -1109,8 +1109,8 @@ function showEditCatchDialog(catchId, zekken, playerName, currentLength, current
 }
 
 window.deleteCatch = async function(id) {
-    if (AUTH_LEVEL !== 2) {
-        showToast('管理者権限が必要です', true);
+    if (AUTH_LEVEL < 1) {
+        showToast('運営者または管理者権限が必要です', true);
         return;
     }
     
