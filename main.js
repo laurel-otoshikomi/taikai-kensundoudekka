@@ -4,6 +4,10 @@
 
 // Supabaseをインポート
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+import {
+    getTotalCountPrizeRankings as getTotalCountPrizeRankingsFromRows,
+    sortRankingRows
+} from './src/ranking-core.js'
 
 // Supabase接続（新しいプロジェクト）
 const supabaseUrl = 'https://pkjvdtvomqzcnfhkqven.supabase.co';
@@ -216,6 +220,7 @@ async function openTournament(tournamentId) {
     // ページ表示切り替え
     document.getElementById('top-page').style.display = 'none';
     document.getElementById('tournament-page').style.display = 'block';
+    updateModeDisplay('ranking');
     
     // 🔥 ログイン前でも選手データを読み込む
     await loadPlayers();
@@ -332,6 +337,59 @@ window.switchTab = function(tabName) {
             loadPlayers().then(() => loadPlayerList());
         }
     }
+    
+    updateModeDisplay(tabName);
+}
+
+function updateModeDisplay(activeTab = 'ranking') {
+    const modeTitle = document.getElementById('mode-title');
+    const modeDesc = document.getElementById('mode-desc');
+    const operatorShortcut = document.getElementById('operator-login-shortcut');
+    const inputTab = document.getElementById('input-tab');
+    const settingsTab = document.getElementById('settings-tab');
+    const csvExportBtn = document.getElementById('csv-export-btn');
+    const pdfExportBtn = document.getElementById('pdf-export-btn');
+
+    if (AUTH_LEVEL === 0) {
+        if (modeTitle && modeDesc) {
+            if (activeTab === 'input') {
+                modeTitle.textContent = '運営者ログイン';
+                modeDesc.textContent = 'パスワード入力後に検量・設定を操作できます';
+            } else if (activeTab === 'settings') {
+                modeTitle.textContent = '共有モード';
+                modeDesc.textContent = '大会URLとQRコードを共有できます';
+            } else {
+                modeTitle.textContent = '観戦モード';
+                modeDesc.textContent = '参加者向けに順位と特別賞を見やすく表示しています';
+            }
+        }
+        if (operatorShortcut) {
+            operatorShortcut.style.display = 'block';
+            operatorShortcut.textContent = '運営者ログイン';
+        }
+        if (inputTab) inputTab.textContent = '🔐 運営者ログイン';
+        if (settingsTab) settingsTab.textContent = '📱 共有';
+        if (csvExportBtn) csvExportBtn.style.display = 'none';
+        if (pdfExportBtn) pdfExportBtn.style.display = 'none';
+        return;
+    }
+    
+    const role = AUTH_LEVEL === 2 ? '管理者モード' : '運営者モード';
+    if (modeTitle && modeDesc) {
+        modeTitle.textContent = role;
+        modeDesc.textContent = AUTH_LEVEL === 2
+            ? '検量入力、大会設定、結果出力ができます'
+            : '検量入力と登録履歴の確認ができます';
+    }
+    if (operatorShortcut) {
+        operatorShortcut.style.display = 'block';
+        operatorShortcut.textContent = activeTab === 'input' ? '順位表へ' : '検量入力へ';
+        operatorShortcut.onclick = () => switchTab(activeTab === 'input' ? 'ranking' : 'input');
+    }
+    if (inputTab) inputTab.textContent = '📝 検量入力';
+    if (settingsTab) settingsTab.textContent = AUTH_LEVEL === 2 ? '⚙️ 設定' : '📱 共有';
+    if (csvExportBtn) csvExportBtn.style.display = AUTH_LEVEL === 2 ? 'block' : 'none';
+    if (pdfExportBtn) pdfExportBtn.style.display = AUTH_LEVEL === 2 ? 'block' : 'none';
 }
 
 // ===================================
@@ -354,6 +412,7 @@ window.login = function() {
     }
     
     console.log('🔐 ログイン成功 AUTH_LEVEL:', AUTH_LEVEL);
+    updateModeDisplay('input');
     
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('input-form').style.display = 'block';
@@ -406,6 +465,7 @@ function updateLoginStatus(role) {
     
     textEl.textContent = `${role}としてログイン中`;
     statusEl.style.display = 'block';
+    updateModeDisplay();
 }
 
 // ===================================
@@ -1272,6 +1332,7 @@ async function loadRanking() {
         // 特別賞も非表示
         document.getElementById('biggest-fish-list').innerHTML = '<div class="empty-state">順位発表までお待ちください</div>';
         document.getElementById('smallest-fish-list').innerHTML = '<div class="empty-state">順位発表までお待ちください</div>';
+        document.getElementById('total-count-list').innerHTML = '<div class="empty-state">順位発表までお待ちください</div>';
         return;
     }
     
@@ -1291,11 +1352,13 @@ async function loadRanking() {
     
     const catches = data || [];
     console.log('📊 釣果データ:', catches.length, '件');
+    updateTournamentSummary(catches, 0);
     
     if (catches.length === 0) {
         document.getElementById('ranking-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
         document.getElementById('biggest-fish-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
         document.getElementById('smallest-fish-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
+        document.getElementById('total-count-list').innerHTML = '<div class="empty-state">まだ釣果がありません</div>';
         return;
     }
     
@@ -1365,20 +1428,11 @@ async function loadRanking() {
     const sort2 = CONFIG.sort2 || null;
     const sort3 = CONFIG.sort3 || null;
     
-    ranking.sort((a, b) => {
-        // 大会ルールで比較
-        if (a[ruleType] !== b[ruleType]) return b[ruleType] - a[ruleType];
-        // 第1優先
-        if (sort1 && a[sort1] !== b[sort1]) return b[sort1] - a[sort1];
-        // 第2優先
-        if (sort2 && a[sort2] !== b[sort2]) return b[sort2] - a[sort2];
-        // 第3優先
-        if (sort3 && a[sort3] !== b[sort3]) return b[sort3] - a[sort3];
-        return 0;
-    });
+    sortRankingRows(ranking, ruleType, sort1, sort2, sort3);
     
     // グローバルに保存
     FULL_RANKING = ranking;
+    updateTournamentSummary(catches, ranking.length);
     
     console.log('✅ ランキング計算完了:', ranking.length, '人');
     
@@ -1399,9 +1453,18 @@ async function loadRanking() {
     } else {
         document.getElementById('smallest-fish-list').closest('.card').style.display = 'none';
     }
+
+    // 累計枚数賞を表示（総釣果数順位、同枚数は最大長寸で判定）
+    const showTotalCount = document.getElementById('show-total-count')?.checked ?? true;
+    if (showTotalCount) {
+        document.querySelector('.prize-grid')?.style.setProperty('display', 'grid');
+        renderTotalCountPrize(ranking, playerMap);
+    } else {
+        document.getElementById('total-count-list').closest('.card').style.display = 'none';
+    }
     
     // どちらも非表示の場合は prize-grid を非表示
-    if (!showBiggestFish && !showSmallestFish) {
+    if (!showBiggestFish && !showSmallestFish && !showTotalCount) {
         document.querySelector('.prize-grid')?.style.setProperty('display', 'none');
     }
     
@@ -1409,15 +1472,53 @@ async function loadRanking() {
     renderMainRanking(ranking, playerMap);
 }
 
+function updateTournamentSummary(catches, scoredPlayersCount) {
+    const playerCountEl = document.getElementById('summary-players');
+    const scoredPlayersEl = document.getElementById('summary-scored-players');
+    const catchesEl = document.getElementById('summary-catches');
+    const updatedEl = document.getElementById('summary-updated');
+    const ruleEl = document.getElementById('summary-rule');
+    
+    if (!playerCountEl || !scoredPlayersEl || !catchesEl || !updatedEl || !ruleEl) return;
+    
+    const latestCatch = catches.reduce((latest, item) => {
+        if (!item.created_at) return latest;
+        if (!latest) return item;
+        return new Date(item.created_at) > new Date(latest.created_at) ? item : latest;
+    }, null);
+    
+    playerCountEl.textContent = `${ALL_PLAYERS.length}名`;
+    scoredPlayersEl.textContent = `${scoredPlayersCount}名`;
+    catchesEl.textContent = `${catches.length}枚`;
+    updatedEl.textContent = latestCatch ? formatSummaryTime(latestCatch.created_at) : '-';
+    
+    const ruleType = CONFIG.rule_type || 'limit_total_len';
+    const ruleLabel = SORT_OPTIONS[ruleType] || 'リミット合計長寸';
+    const limitText = CONFIG.limit_count > 0 ? ` / ${CONFIG.limit_count}匹リミット` : ' / 無制限';
+    ruleEl.textContent = `${ruleLabel}${limitText}`;
+}
+
+function formatSummaryTime(dateString) {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString('ja-JP', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 // 大物賞を表示
 function renderBiggestFish(ranking, playerMap) {
     const card = document.getElementById('biggest-fish-list').closest('.card');
     card.style.display = 'block';
     
+    const rankingOrder = getMainRankingOrderMap(ranking);
     const biggestRanking = [...ranking].sort((a, b) => {
-        // 長寸が同じ場合は重量が重い方が上位
+        // 長寸が同じ場合は、重量記載が両方にあれば重量、未記載があれば大会順位で判定
         if (b.max_len === a.max_len) {
-            return b.max_weight - a.max_weight;
+            return compareBiggestPrizeTie(a, b, rankingOrder);
         }
         return b.max_len - a.max_len;
     });
@@ -1562,6 +1663,78 @@ function renderSmallestFish(ranking, playerMap) {
                     <div class="stat">
                         <div class="stat-label" style="font-size: 12px; color: ${textColor}; opacity: 0.9;">最小長寸</div>
                         <div class="stat-value" style="color: ${textColor}; font-size: 20px; font-weight: bold;">${r.min_len.toFixed(1)}cm</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 累計枚数賞を表示
+function renderTotalCountPrize(ranking, playerMap) {
+    const card = document.getElementById('total-count-list').closest('.card');
+    card.style.display = 'block';
+    
+    const countRanking = [...ranking].sort((a, b) => {
+        if (b.total_count === a.total_count) {
+            if (b.max_len === a.max_len) {
+                return b.total_weight - a.total_weight;
+            }
+            return b.max_len - a.max_len;
+        }
+        return b.total_count - a.total_count;
+    }).slice(0, 3);
+    
+    const container = document.getElementById('total-count-list');
+    container.innerHTML = countRanking.map((r, index) => {
+        const player = playerMap[r.zekken] || {};
+        const playerName = player.name || '未登録';
+        const playerClub = player.club || '';
+        
+        let bgColor, borderColor, textColor, medalEmoji;
+        if (index === 0) {
+            bgColor = 'linear-gradient(135deg, #FFD700, #FFA500)';
+            borderColor = '#FFD700';
+            textColor = '#000';
+            medalEmoji = '🥇';
+        } else if (index === 1) {
+            bgColor = 'linear-gradient(135deg, #C0C0C0, #A8A8A8)';
+            borderColor = '#C0C0C0';
+            textColor = '#000';
+            medalEmoji = '🥈';
+        } else {
+            bgColor = 'linear-gradient(135deg, #CD7F32, #B87333)';
+            borderColor = '#CD7F32';
+            textColor = '#FFF';
+            medalEmoji = '🥉';
+        }
+        
+        return `
+            <div class="ranking-item" style="
+                padding: 12px;
+                margin-bottom: 10px;
+                background: ${bgColor};
+                border: 3px solid ${borderColor};
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            ">
+                <div class="ranking-header">
+                    <div style="font-size: 20px; font-weight: bold; color: ${textColor};">
+                        ${medalEmoji} ${index + 1}位
+                    </div>
+                    <div>
+                        <div style="font-size: 16px; font-weight: bold; color: ${textColor};">${r.zekken}番: ${playerName}</div>
+                        ${playerClub ? `<div style="font-size: 12px; opacity: 0.8; color: ${textColor};">${playerClub}</div>` : ''}
+                    </div>
+                </div>
+                <div class="ranking-stats">
+                    <div class="stat">
+                        <div class="stat-label" style="font-size: 12px; color: ${textColor}; opacity: 0.9;">累計枚数</div>
+                        <div class="stat-value" style="color: ${textColor}; font-size: 20px; font-weight: bold;">${r.total_count}枚</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label" style="font-size: 12px; color: ${textColor}; opacity: 0.9;">最大長寸</div>
+                        <div class="stat-value" style="color: ${textColor}; font-size: 20px; font-weight: bold;">${r.max_len.toFixed(1)}cm</div>
                     </div>
                 </div>
             </div>
@@ -2406,14 +2579,17 @@ async function loadTournamentSettings() {
     // 特別賞の表示設定を復元（デフォルトはtrue）
     const showBiggestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`);
     const showSmallestFish = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`);
+    const showTotalCount = localStorage.getItem(`${CURRENT_TOURNAMENT_ID}_show_total_count`);
     
     CONFIG.show_biggest_fish = showBiggestFish === null ? true : showBiggestFish === 'true';
     CONFIG.show_smallest_fish = showSmallestFish === null ? true : showSmallestFish === 'true';
+    CONFIG.show_total_count = showTotalCount === null ? true : showTotalCount === 'true';
     
     document.getElementById('show-biggest-fish').checked = CONFIG.show_biggest_fish;
     document.getElementById('show-smallest-fish').checked = CONFIG.show_smallest_fish;
+    document.getElementById('show-total-count').checked = CONFIG.show_total_count;
     
-    console.log('🏆 特別賞設定:', { show_biggest_fish: CONFIG.show_biggest_fish, show_smallest_fish: CONFIG.show_smallest_fish });
+    console.log('🏆 特別賞設定:', { show_biggest_fish: CONFIG.show_biggest_fish, show_smallest_fish: CONFIG.show_smallest_fish, show_total_count: CONFIG.show_total_count });
     
     // 順位非表示設定を復元（デフォルトはfalse）
     CONFIG.hide_ranking = CONFIG.hide_ranking === true;
@@ -2527,6 +2703,7 @@ window.updateTournamentSettings = async function() {
     // 特別賞の表示設定を取得
     const showBiggestFish = document.getElementById('show-biggest-fish').checked;
     const showSmallestFish = document.getElementById('show-smallest-fish').checked;
+    const showTotalCount = document.getElementById('show-total-count').checked;
     
     // 順位非表示設定を取得
     const hideRanking = document.getElementById('hide-ranking').checked;
@@ -2534,6 +2711,7 @@ window.updateTournamentSettings = async function() {
     // localStorageに保存（特別賞のみ）
     localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_biggest_fish`, showBiggestFish);
     localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_smallest_fish`, showSmallestFish);
+    localStorage.setItem(`${CURRENT_TOURNAMENT_ID}_show_total_count`, showTotalCount);
     
     console.log('💾 順位非表示設定を保存:', hideRanking);
     
@@ -2546,7 +2724,7 @@ window.updateTournamentSettings = async function() {
         return;
     }
     
-    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3, showBiggestFish, showSmallestFish, hideRanking });
+    console.log('💾 設定保存:', { ruleType, limitCount, sort1, sort2, sort3, showBiggestFish, showSmallestFish, showTotalCount, hideRanking });
     console.log('💾 更新条件:', { id: CURRENT_TOURNAMENT_ID });
     console.log('💾 更新前のCONFIG.limit_count:', CONFIG.limit_count);
     
@@ -2601,6 +2779,7 @@ window.updateTournamentSettings = async function() {
     CONFIG = updatedConfig;
     CONFIG.show_biggest_fish = showBiggestFish;
     CONFIG.show_smallest_fish = showSmallestFish;
+    CONFIG.show_total_count = showTotalCount;
     CONFIG.hide_ranking = hideRanking;
     console.log('✅ 再取得後のCONFIG:', CONFIG);
     
@@ -2854,6 +3033,7 @@ window.exportResults = async function() {
         // 特別賞データを取得（3位まで）
         const biggestCatches = await getBiggestCatches(3);
         const smallestCatches = await getSmallestCatches(3);
+        const totalCountPrizes = getTotalCountPrizeRankings(3);
         
         // CSV生成開始
         let csv = '';
@@ -2868,8 +3048,24 @@ window.exportResults = async function() {
             'total_count': '総枚数',
             'total_weight': '総重量'
         };
-        csv += `ルール,"${ruleTypes[CONFIG.rule_type] || 'リミット合計長寸'}"\n`;
-        csv += `リミット匹数,${CONFIG.limit_count > 0 ? CONFIG.limit_count + '匹' : '無制限'}\n`;
+        const ruleText = ruleTypes[CONFIG.rule_type] || 'リミット合計長寸';
+        const limitText = CONFIG.limit_count > 0 ? `${CONFIG.limit_count}匹` : '無制限';
+        const scoredPlayerCount = new Set((allCatches || []).map(c => c.zekken)).size;
+        const latestCatch = (allCatches || []).reduce((latest, item) => {
+            if (!item.created_at) return latest;
+            if (!latest) return item;
+            return new Date(item.created_at) > new Date(latest.created_at) ? item : latest;
+        }, null);
+        const latestUpdatedAt = latestCatch ? new Date(latestCatch.created_at).toLocaleString('ja-JP') : '-';
+        const summaryRule = `${ruleText} / ${limitText === '無制限' ? '無制限' : `${limitText}リミット`}`;
+        
+        csv += `ルール,"${ruleText}"\n`;
+        csv += `リミット匹数,${limitText}\n`;
+        csv += `参加者数,${players.length}名\n`;
+        csv += `検量済み人数,${scoredPlayerCount}名\n`;
+        csv += `総釣果,${(allCatches || []).length}枚\n`;
+        csv += `最終更新,"${latestUpdatedAt}"\n`;
+        csv += `集計ルール,"${summaryRule}"\n`;
         csv += '\n';
         
         // ===== 順位表 =====
@@ -2913,6 +3109,20 @@ window.exportResults = async function() {
             console.log(`✅ 最小寸賞を${smallestCatches.length}件追加しました`);
         } else {
             console.log('⚠️ 最小寸賞データなし');
+        }
+
+        // 累計枚数賞（上位3位まで）
+        if (totalCountPrizes.length > 0) {
+            csv += '累計枚数賞（総釣果数上位）\n';
+            csv += '順位,ゼッケン番号,名前,所属,累計枚数,最大長寸(cm),総重量(g)\n';
+            totalCountPrizes.forEach((r, index) => {
+                const player = players.find(p => p.zekken === r.zekken) || {};
+                csv += `${index + 1}位,${r.zekken}番,"${player.name || '未登録'}","${player.club || ''}",${r.total_count || 0},${r.max_len || 0},${r.total_weight || 0}\n`;
+            });
+            csv += '\n';
+            console.log(`✅ 累計枚数賞を${totalCountPrizes.length}件追加しました`);
+        } else {
+            console.log('⚠️ 累計枚数賞データなし');
         }
         csv += '\n';
         
@@ -2970,30 +3180,129 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===================================
-// PDF出力機能（日本語対応版）
+// PDF出力機能（テキストPDF / 日本語フォント埋め込み）
 // ===================================
+let PDF_FONT_BASE64 = null;
+
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    let binary = '';
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+
+    return btoa(binary);
+}
+
+async function setupPdfJapaneseFont(doc) {
+    if (!PDF_FONT_BASE64) {
+        const response = await fetch('/fonts/NotoSansJP-Regular.ttf');
+        if (!response.ok) {
+            throw new Error('日本語フォントを読み込めませんでした');
+        }
+        PDF_FONT_BASE64 = arrayBufferToBase64(await response.arrayBuffer());
+    }
+
+    doc.addFileToVFS('NotoSansJP-Regular.ttf', PDF_FONT_BASE64);
+    doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+    doc.setFont('NotoSansJP', 'normal');
+}
+
+function pdfText(value, fallback = '-') {
+    if (value === null || value === undefined || value === '') return fallback;
+    return String(value);
+}
+
+function getPdfFinalY(doc, fallback) {
+    return doc.lastAutoTable ? doc.lastAutoTable.finalY : fallback;
+}
+
+function addPdfTable(doc, title, head, body, options = {}) {
+    const startY = options.startY || getPdfFinalY(doc, 24) + 8;
+    doc.setFont('NotoSansJP', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(40, 40, 40);
+    doc.text(title, 14, startY);
+
+    doc.autoTable({
+        startY: startY + 4,
+        head: [head],
+        body,
+        theme: 'grid',
+        styles: {
+            font: 'NotoSansJP',
+            fontStyle: 'normal',
+            fontSize: options.fontSize || 8,
+            cellPadding: 2,
+            lineColor: [220, 220, 220],
+            lineWidth: 0.1,
+            overflow: 'linebreak',
+            valign: 'middle'
+        },
+        headStyles: {
+            fillColor: options.headColor || [102, 126, 234],
+            textColor: [255, 255, 255],
+            font: 'NotoSansJP',
+            fontStyle: 'normal'
+        },
+        alternateRowStyles: {
+            fillColor: [248, 249, 250]
+        },
+        margin: { left: 14, right: 14 },
+        columnStyles: options.columnStyles || {},
+        pageBreak: options.pageBreak || 'auto'
+    });
+}
+
 window.exportPDF = async function() {
     try {
+        if (AUTH_LEVEL !== 2) {
+            showToast('❌ PDF出力には管理者権限が必要です', true);
+            return;
+        }
+
         showToast('📄 PDF生成中...');
-        
-        // 必要なライブラリが読み込まれているか確認
-        if (typeof window.jspdf === 'undefined' || typeof html2canvas === 'undefined') {
+
+        if (typeof window.jspdf === 'undefined') {
             showToast('❌ PDFライブラリが読み込まれていません', true);
             return;
         }
-        
+
         const { jsPDF } = window.jspdf;
-        
-        // データ取得
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        if (typeof doc.autoTable !== 'function') {
+            showToast('❌ PDF表作成ライブラリが読み込まれていません', true);
+            return;
+        }
+
+        await setupPdfJapaneseFont(doc);
+
         const ranking = FULL_RANKING || [];
         const players = ALL_PLAYERS || [];
-        
+
         if (ranking.length === 0) {
             showToast('❌ まだ釣果データがありません', true);
             return;
         }
-        
-        // ルール情報
+
+        const { data: allCatches, error: catchesError } = await client
+            .from('catches')
+            .select('*')
+            .eq('tournament_id', CURRENT_TOURNAMENT_ID)
+            .order('created_at', { ascending: false });
+
+        if (catchesError) {
+            throw catchesError;
+        }
+
+        const catches = allCatches || [];
         const ruleTypes = {
             'limit_total_len': 'リミット合計長寸',
             'limit_weight': 'リミット合計重量',
@@ -3001,223 +3310,185 @@ window.exportPDF = async function() {
             'total_weight': '総重量'
         };
         const ruleText = ruleTypes[CONFIG.rule_type] || 'リミット合計長寸';
-        const limitText = CONFIG.limit_count > 0 ? `(リミット${CONFIG.limit_count}匹)` : '(無制限)';
-        
-        // HTML要素を動的に作成
-        const container = document.createElement('div');
-        container.style.cssText = `
-            position: absolute;
-            left: -9999px;
-            width: 800px;
-            background: white;
-            padding: 40px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
-            color: #333;
-        `;
-        
-        // ヘッダー
+        const limitText = CONFIG.limit_count > 0 ? `${CONFIG.limit_count}匹リミット` : '無制限';
         const title = CONFIG.name || '釣り大会';
-        const date = new Date().toLocaleDateString('ja-JP');
-        
-        container.innerHTML = `
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="font-size: 32px; margin: 0 0 10px 0; color: #667eea;">${title}</h1>
-                <p style="font-size: 14px; color: #666; margin: 5px 0;">作成日: ${date}</p>
-                <p style="font-size: 14px; color: #666; margin: 5px 0;">ルール: ${ruleText} ${limitText}</p>
-            </div>
-            
-            <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #667eea; color: white;">
-                            <th style="padding: 12px 8px; text-align: center; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">順位</th>
-                            <th style="padding: 12px 8px; text-align: center; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">ゼッケン</th>
-                            <th style="padding: 12px 8px; text-align: left; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">名前</th>
-                            <th style="padding: 12px 8px; text-align: left; font-size: 14px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">所属</th>
-                            <th style="padding: 12px 8px; text-align: center; font-size: 14px; font-weight: bold;">${ruleText}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${ranking.map((r, index) => {
-                            const player = players.find(p => p.zekken === r.zekken) || {};
-                            const ruleValue = formatValue(CONFIG.rule_type, r[CONFIG.rule_type]);
-                            const bgColor = index % 2 === 0 ? '#f9f9f9' : 'white';
-                            
-                            return `
-                                <tr style="background: ${bgColor};">
-                                    <td style="padding: 10px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${index + 1}位</td>
-                                    <td style="padding: 10px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${r.zekken}番</td>
-                                    <td style="padding: 10px 8px; text-align: left; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; font-weight: bold;">${player.name || '未登録'}</td>
-                                    <td style="padding: 10px 8px; text-align: left; font-size: 13px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${player.club || '-'}</td>
-                                    <td style="padding: 10px 8px; text-align: center; font-size: 13px; border-bottom: 1px solid #eee; font-weight: bold; color: #667eea;">${ruleValue}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        // 特別賞を追加（3位まで表示）
-        const prizesHtml = [];
-        
-        // 大物賞（上位3位まで）
-        const biggestCatches = await getBiggestCatches(3);
-        console.log('🏆 PDF大物賞データ:', biggestCatches);
-        if (biggestCatches.length > 0) {
-            let biggestHtml = `
-                <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-                    <strong style="color: #667eea; font-size: 16px;">🐟 大物賞（長寸上位）</strong><br>
-            `;
-            biggestCatches.forEach((c, index) => {
-                const player = players.find(p => p.zekken === c.zekken) || {};
-                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-                biggestHtml += `
-                    <div style="font-size: 14px; margin-top: 8px; padding: 8px; background: white; border-radius: 5px;">
-                        ${medal} ${index + 1}位: ${player.name || '未登録'} (${c.zekken}番) - 長寸: ${c.length}cm ${c.weight ? `/ 重量: ${c.weight}g` : ''}
-                    </div>
-                `;
-            });
-            biggestHtml += `</div>`;
-            prizesHtml.push(biggestHtml);
-            console.log(`✅ PDF大物賞を${biggestCatches.length}件追加しました`);
-        }
-        
-        // 最小寸賞（上位3位まで）
-        const smallestCatches = await getSmallestCatches(3);
-        console.log('🏆 PDF最小寸賞データ:', smallestCatches);
-        if (smallestCatches.length > 0) {
-            let smallestHtml = `
-                <div style="background: rgba(255, 183, 77, 0.1); padding: 15px; border-radius: 8px;">
-                    <strong style="color: #ff8c00; font-size: 16px;">🎣 最小寸賞（長寸下位）</strong><br>
-            `;
-            smallestCatches.forEach((c, index) => {
-                const player = players.find(p => p.zekken === c.zekken) || {};
-                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-                smallestHtml += `
-                    <div style="font-size: 14px; margin-top: 8px; padding: 8px; background: white; border-radius: 5px;">
-                        ${medal} ${index + 1}位: ${player.name || '未登録'} (${c.zekken}番) - 長寸: ${c.length}cm ${c.weight ? `/ 重量: ${c.weight}g` : ''}
-                    </div>
-                `;
-            });
-            smallestHtml += `</div>`;
-            prizesHtml.push(smallestHtml);
-            console.log(`✅ PDF最小寸賞を${smallestCatches.length}件追加しました`);
-        }
-        
-        if (prizesHtml.length > 0) {
-            container.innerHTML += `
-                <div style="margin-top: 30px;">
-                    <h2 style="font-size: 20px; margin-bottom: 15px; color: #333;">🏆 特別賞</h2>
-                    ${prizesHtml.join('')}
-                </div>
-            `;
-        } else {
-            console.log('⚠️ PDF特別賞データがありません');
-        }
-        
-        // 全釣果データを追加
-        const { data: allCatches, error: catchesError } = await client
-            .from('catches')
-            .select('*')
-            .eq('tournament_id', CURRENT_TOURNAMENT_ID)
-            .order('created_at', { ascending: false });
-        
-        if (!catchesError && allCatches && allCatches.length > 0) {
-            container.innerHTML += `
-                <div style="margin-top: 30px; page-break-before: always;">
-                    <h2 style="font-size: 20px; margin-bottom: 15px; color: #333;">📊 全釣果データ</h2>
-                    <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background: #51cf66; color: white;">
-                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">No.</th>
-                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">ゼッケン</th>
-                                    <th style="padding: 10px 8px; text-align: left; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">名前</th>
-                                    <th style="padding: 10px 8px; text-align: left; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">所属</th>
-                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">長寸</th>
-                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold; border-right: 1px solid rgba(255,255,255,0.2);">重量</th>
-                                    <th style="padding: 10px 8px; text-align: center; font-size: 13px; font-weight: bold;">登録日時</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${allCatches.map((c, index) => {
-                                    const player = players.find(p => p.zekken === c.zekken) || {};
-                                    const bgColor = index % 2 === 0 ? '#f9f9f9' : 'white';
-                                    const dateStr = new Date(c.created_at).toLocaleString('ja-JP', {
-                                        month: '2-digit',
-                                        day: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    });
-                                    
-                                    return `
-                                        <tr style="background: ${bgColor};">
-                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${index + 1}</td>
-                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${c.zekken}番</td>
-                                            <td style="padding: 8px; text-align: left; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; font-weight: bold;">${player.name || '未登録'}</td>
-                                            <td style="padding: 8px; text-align: left; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">${player.club || '-'}</td>
-                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; color: #51cf66; font-weight: bold;">${c.length}cm</td>
-                                            <td style="padding: 8px; text-align: center; font-size: 12px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; color: #ffd93d; font-weight: bold;">${c.weight || 0}g</td>
-                                            <td style="padding: 8px; text-align: center; font-size: 11px; border-bottom: 1px solid #eee; color: #999;">${dateStr}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top: 10px; text-align: right; font-size: 12px; color: #666;">
-                        合計: ${allCatches.length}件の釣果
-                    </div>
-                </div>
-            `;
-        }
-        
-        document.body.appendChild(container);
-        
-        // Canvas化
-        const canvas = await html2canvas(container, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false
-        });
-        
-        // コンテナを削除
-        document.body.removeChild(container);
-        
-        // PDFに変換
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 210; // A4の幅（mm）
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        const doc = new jsPDF({
-            orientation: imgHeight > 297 ? 'portrait' : 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        });
-        
-        // 画像を追加（複数ページ対応）
-        let position = 0;
-        const pageHeight = 297; // A4の高さ（mm）
-        
-        while (position < imgHeight) {
-            if (position > 0) {
-                doc.addPage();
+        const createdAt = new Date().toLocaleString('ja-JP');
+        const latestCatch = catches.reduce((latest, current) => {
+            if (!latest) return current;
+            return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+        }, null);
+        const latestUpdatedAt = latestCatch
+            ? new Date(latestCatch.created_at).toLocaleString('ja-JP')
+            : '-';
+        const scoredPlayerCount = new Set(catches.map(c => c.zekken)).size;
+
+        doc.setFont('NotoSansJP', 'normal');
+        doc.setFontSize(18);
+        doc.setTextColor(40, 40, 40);
+        doc.text(title, 14, 16);
+        doc.setFontSize(9);
+        doc.setTextColor(90, 90, 90);
+        doc.text(`作成日時: ${createdAt}`, 14, 23);
+
+        addPdfTable(doc, '大会情報', ['項目', '内容'], [
+            ['参加者数', `${players.length}名`],
+            ['検量済み人数', `${scoredPlayerCount}名`],
+            ['総釣果', `${catches.length}枚`],
+            ['最終更新', latestUpdatedAt],
+            ['集計ルール', `${ruleText} / ${limitText}`]
+        ], {
+            startY: 30,
+            headColor: [81, 207, 102],
+            columnStyles: {
+                0: { cellWidth: 42 },
+                1: { cellWidth: 136 }
             }
-            doc.addImage(imgData, 'PNG', 0, -position, imgWidth, imgHeight);
-            position += pageHeight;
+        });
+
+        addPdfTable(doc, '順位表', [
+            '順位',
+            'ゼッケン',
+            '名前',
+            '所属',
+            ruleText,
+            '累計枚数',
+            '最大長寸',
+            '総重量'
+        ], ranking.map((r, index) => {
+            const player = players.find(p => p.zekken === r.zekken) || {};
+            return [
+                `${index + 1}位`,
+                `${r.zekken}番`,
+                pdfText(player.name, '未登録'),
+                pdfText(player.club),
+                formatValue(CONFIG.rule_type, r[CONFIG.rule_type]),
+                `${r.total_count || 0}枚`,
+                `${Number(r.max_len || 0).toFixed(1)}cm`,
+                `${r.total_weight || 0}g`
+            ];
+        }), {
+            columnStyles: {
+                0: { cellWidth: 15, halign: 'center' },
+                1: { cellWidth: 20, halign: 'center' },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 28, halign: 'right' },
+                5: { cellWidth: 20, halign: 'right' },
+                6: { cellWidth: 20, halign: 'right' },
+                7: { cellWidth: 20, halign: 'right' }
+            }
+        });
+
+        const prizeRows = [];
+        const biggestCatches = await getBiggestCatches(3);
+        biggestCatches.forEach((c, index) => {
+            const player = players.find(p => p.zekken === c.zekken) || {};
+            prizeRows.push([
+                '大物賞',
+                `${index + 1}位`,
+                `${c.zekken}番`,
+                pdfText(player.name, '未登録'),
+                `長寸 ${c.length}cm${c.weight ? ` / 重量 ${c.weight}g` : ''}`
+            ]);
+        });
+
+        const smallestCatches = await getSmallestCatches(3);
+        smallestCatches.forEach((c, index) => {
+            const player = players.find(p => p.zekken === c.zekken) || {};
+            prizeRows.push([
+                '最小寸賞',
+                `${index + 1}位`,
+                `${c.zekken}番`,
+                pdfText(player.name, '未登録'),
+                `長寸 ${c.length}cm${c.weight ? ` / 重量 ${c.weight}g` : ''}`
+            ]);
+        });
+
+        const totalCountPrizes = getTotalCountPrizeRankings(3);
+        totalCountPrizes.forEach((r, index) => {
+            const player = players.find(p => p.zekken === r.zekken) || {};
+            prizeRows.push([
+                '累計枚数賞',
+                `${index + 1}位`,
+                `${r.zekken}番`,
+                pdfText(player.name, '未登録'),
+                `累計 ${r.total_count}枚 / 最大長寸 ${Number(r.max_len || 0).toFixed(1)}cm`
+            ]);
+        });
+
+        if (prizeRows.length > 0) {
+            addPdfTable(doc, '特別賞', ['賞', '順位', 'ゼッケン', '名前', '内容'], prizeRows, {
+                headColor: [245, 87, 108],
+                columnStyles: {
+                    0: { cellWidth: 28 },
+                    1: { cellWidth: 15, halign: 'center' },
+                    2: { cellWidth: 20, halign: 'center' },
+                    3: { cellWidth: 35 },
+                    4: { cellWidth: 85 }
+                }
+            });
         }
-        
-        // ファイル名生成
+
+        if (catches.length > 0) {
+            doc.addPage();
+            doc.setFont('NotoSansJP', 'normal');
+            addPdfTable(doc, '全釣果データ', [
+                'No.',
+                'ゼッケン',
+                '名前',
+                '所属',
+                '長寸',
+                '重量',
+                '登録日時'
+            ], catches.map((c, index) => {
+                const player = players.find(p => p.zekken === c.zekken) || {};
+                const dateStr = new Date(c.created_at).toLocaleString('ja-JP', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                return [
+                    String(index + 1),
+                    `${c.zekken}番`,
+                    pdfText(player.name, '未登録'),
+                    pdfText(player.club),
+                    `${c.length}cm`,
+                    `${c.weight || 0}g`,
+                    dateStr
+                ];
+            }), {
+                startY: 16,
+                headColor: [81, 207, 102],
+                fontSize: 7,
+                columnStyles: {
+                    0: { cellWidth: 12, halign: 'center' },
+                    1: { cellWidth: 20, halign: 'center' },
+                    2: { cellWidth: 32 },
+                    3: { cellWidth: 32 },
+                    4: { cellWidth: 20, halign: 'right' },
+                    5: { cellWidth: 20, halign: 'right' },
+                    6: { cellWidth: 40, halign: 'center' }
+                }
+            });
+        }
+
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFont('NotoSansJP', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(120, 120, 120);
+            doc.text(`${i} / ${pageCount}`, 196, 287, { align: 'right' });
+        }
+
         const tournamentName = CONFIG.name || 'tournament';
         const timestamp = new Date().toISOString().split('T')[0];
         const filename = `${tournamentName}_ranking_${timestamp}.pdf`;
-        
-        // PDF保存
+
         doc.save(filename);
-        
         showToast('✅ PDFファイルをダウンロードしました');
-        
+
     } catch (error) {
         console.error('❌ PDF生成エラー:', error);
         showToast('❌ PDF生成に失敗しました: ' + error.message, true);
@@ -3225,32 +3496,74 @@ window.exportPDF = async function() {
 }
 
 // 大物賞データ取得（上位3位まで、重複なし）
+function getTotalCountPrizeRankings(limit = 3) {
+    return getTotalCountPrizeRankingsFromRows(FULL_RANKING, limit);
+}
+
+function getMainRankingOrderMap(ranking = FULL_RANKING) {
+    const order = new Map();
+    (ranking || []).forEach((row, index) => {
+        order.set(Number(row.zekken), index);
+    });
+    return order;
+}
+
+function compareByMainRanking(zekkenA, zekkenB, rankingOrder = getMainRankingOrderMap()) {
+    const rankA = rankingOrder.has(Number(zekkenA)) ? rankingOrder.get(Number(zekkenA)) : Number.MAX_SAFE_INTEGER;
+    const rankB = rankingOrder.has(Number(zekkenB)) ? rankingOrder.get(Number(zekkenB)) : Number.MAX_SAFE_INTEGER;
+    return rankA - rankB;
+}
+
+function getRecordedWeight(item) {
+    const weight = Number(item.weight ?? item.max_weight ?? 0);
+    return weight > 0 ? weight : null;
+}
+
+function compareBiggestPrizeTie(a, b, rankingOrder = getMainRankingOrderMap()) {
+    const weightA = getRecordedWeight(a);
+    const weightB = getRecordedWeight(b);
+
+    if (weightA !== null && weightB !== null && weightA !== weightB) {
+        return weightB - weightA;
+    }
+
+    const mainRankingDiff = compareByMainRanking(a.zekken, b.zekken, rankingOrder);
+    if (mainRankingDiff !== 0) return mainRankingDiff;
+
+    if (weightA !== null && weightB !== null) {
+        return weightB - weightA;
+    }
+
+    return Number(a.zekken) - Number(b.zekken);
+}
+
 async function getBiggestCatches(limit = 3) {
     const { data, error } = await client
         .from('catches')
         .select('*')
         .eq('tournament_id', CURRENT_TOURNAMENT_ID)
         .order('length', { ascending: false })
-        .order('weight', { ascending: false }); // 同寸なら重量が重い方を上位
+        .order('weight', { ascending: false });
     
     if (error || !data || data.length === 0) return [];
     
-    // 同一人物（同じzekken）の重複を除外
-    const uniqueResults = [];
+    // 同一人物は最大長寸の釣果だけを代表にする
+    const bestCatchByZekken = new Map();
     const seenZekkens = new Set();
-    
     for (const catch_ of data) {
         if (!seenZekkens.has(catch_.zekken)) {
-            uniqueResults.push(catch_);
+            bestCatchByZekken.set(catch_.zekken, catch_);
             seenZekkens.add(catch_.zekken);
-            
-            if (uniqueResults.length >= limit) {
-                break;
-            }
         }
     }
     
-    return uniqueResults;
+    const rankingOrder = getMainRankingOrderMap();
+    return [...bestCatchByZekken.values()]
+        .sort((a, b) => {
+            if (b.length !== a.length) return b.length - a.length;
+            return compareBiggestPrizeTie(a, b, rankingOrder);
+        })
+        .slice(0, limit);
 }
 
 // 大物賞データ取得（1位のみ - 後方互換性）

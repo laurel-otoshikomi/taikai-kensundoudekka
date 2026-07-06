@@ -9,8 +9,6 @@
     <!-- jsPDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <!-- html2canvas for Japanese text rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             /* テーマカラー（カスタマイズ可能） */
@@ -34,6 +32,8 @@
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: var(--text-color);
             min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
         }
         
         h1, h2, h3 {
@@ -54,6 +54,10 @@
             text-align: center;
             padding: 30px 0;
             position: relative;
+        }
+
+        .header .btn {
+            width: auto;
         }
         
         .header .logo {
@@ -111,6 +115,52 @@
         
         .view.active {
             display: block;
+        }
+
+        .compact-btn {
+            width: auto;
+            padding: 9px 12px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+
+        .tournament-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .summary-item {
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            min-height: 74px;
+        }
+
+        .summary-label {
+            display: block;
+            font-size: 11px;
+            color: var(--heading-color);
+            opacity: 0.78;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            display: block;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--heading-color);
+            line-height: 1.15;
+        }
+
+        .summary-note {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--heading-color);
+            opacity: 0.72;
         }
         
         .input-group {
@@ -356,6 +406,10 @@
             .prize-grid {
                 grid-template-columns: 1fr !important;
             }
+
+            .tournament-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
             
             /* ランキングアイテムのフォントサイズ削減 */
             .ranking-item {
@@ -505,9 +559,9 @@
 
             <!-- タブ -->
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('ranking')">🏆 順位表</button>
-                <button class="tab" onclick="switchTab('input')">📝 検量入力</button>
-                <button class="tab" onclick="switchTab('settings')">⚙️ 設定</button>
+                <button id="ranking-tab" class="tab active" onclick="switchTab('ranking')">🏆 順位表</button>
+                <button id="input-tab" class="tab" onclick="switchTab('input')">🔐 運営者ログイン</button>
+                <button id="settings-tab" class="tab" onclick="switchTab('settings')">📱 共有</button>
             </div>
 
             <!-- 順位表 -->
@@ -527,13 +581,36 @@
                                 🔄 更新
                             </button>
                             <!-- CSVエクスポート -->
-                            <button class="btn" onclick="exportResults()" style="padding: 8px 15px; font-size: 14px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">
+                            <button id="csv-export-btn" class="btn" onclick="exportResults()" style="display: none; padding: 8px 15px; font-size: 14px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;">
                                 📊 CSV出力
                             </button>
                             <!-- PDF出力 -->
-                            <button class="btn" onclick="exportPDF()" style="padding: 8px 15px; font-size: 14px; background: linear-gradient(135deg, #f093fb, #f5576c); border: none; color: white;">
+                            <button id="pdf-export-btn" class="btn" onclick="exportPDF()" style="display: none; padding: 8px 15px; font-size: 14px; background: linear-gradient(135deg, #f093fb, #f5576c); border: none; color: white;">
                                 📄 PDF出力
                             </button>
+                        </div>
+                    </div>
+
+                    <div id="tournament-summary" class="tournament-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">参加者</span>
+                            <span class="summary-value" id="summary-players">-</span>
+                            <span class="summary-note">登録済み</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">検量済み</span>
+                            <span class="summary-value" id="summary-scored-players">-</span>
+                            <span class="summary-note">釣果登録あり</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">総釣果</span>
+                            <span class="summary-value" id="summary-catches">-</span>
+                            <span class="summary-note">累計枚数</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">最終更新</span>
+                            <span class="summary-value" id="summary-updated">-</span>
+                            <span class="summary-note" id="summary-rule">集計中</span>
                         </div>
                     </div>
                     
@@ -559,8 +636,8 @@
                     </button>
                 </div>
                 
-                <!-- 大物賞と最小寸賞（横並び） -->
-                <div class="prize-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <!-- 特別賞 -->
+                <div class="prize-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                     <!-- 大物賞 -->
                     <div class="card">
                         <h3 style="font-size: 18px; margin-bottom: 15px;">🐟 大物賞</h3>
@@ -571,6 +648,12 @@
                     <div class="card">
                         <h3 style="font-size: 18px; margin-bottom: 15px;">🎣 最小寸賞</h3>
                         <div id="smallest-fish-list"></div>
+                    </div>
+
+                    <!-- 累計枚数賞 -->
+                    <div class="card">
+                        <h3 style="font-size: 18px; margin-bottom: 15px;">📈 累計枚数賞</h3>
+                        <div id="total-count-list"></div>
                     </div>
                 </div>
             </div>
@@ -795,6 +878,11 @@
                         <div class="checkbox-group">
                             <input type="checkbox" id="show-smallest-fish" checked>
                             <label for="show-smallest-fish">🎣 最小寸賞を表示する（1匹最小長寸）</label>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-total-count" checked>
+                            <label for="show-total-count">📈 累計枚数賞を表示する（総釣果数）</label>
                         </div>
                     </div>
 
